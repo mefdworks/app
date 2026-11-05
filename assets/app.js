@@ -171,7 +171,7 @@
   // ── Piezas ──
   function filaTarea(t) {
     var perfil = t._c ? perfilDe(t._c) : '';
-    var cl = t._c ? '<a class="chip ' + perfil + '" href="#c/' + esc(t._c) + '">' + esc(nombreCliente(t._c)) + '</a>'
+    var cl = t._c ? '<button class="chip ' + perfil + '" type="button" data-open="' + esc(t._c) + '">' + esc(nombreCliente(t._c)) + '</button>'
       : (t.cliente || t.negocio ? '<span class="chip">' + esc(t.cliente || t.negocio) + '</span>' : '');
     return '<div class="row"><span class="dot ' + esc(t.prioridad) + '" title="Prioridad ' + esc(t.prioridad) + '"></span><div class="t"><b>' + esc(t.tarea) + '</b>' +
       (t.notas ? '<small>' + esc(t.notas) + '</small>' : '') +
@@ -189,7 +189,7 @@
       s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
       s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       s = s.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
-      s = s.replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,;:]|$)/g, '$1<em>$2</em>');
+      s = s.replace(/(^|[\s(])_([^\n]+?)_(?=[\s).,;:]|$)/g, '$1<em>$2</em>');
       s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
       s = s.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
       return s;
@@ -278,7 +278,8 @@
       '<a class="kpi" href="#tareas/sem"><small>Próximos 7 días</small><b>' + sem.length + '</b><div class="d">con fecha</div></a>' + finKpi + '</div>' +
       sec('Necesita tu atención', atn.length ? '<span class="chip">' + atn.length + '</span>' : '') +
       (atn.length ? '<div class="card list">' + atn.map(function (a) {
-        return '<a class="row" href="#' + (a.k ? 'c/' + esc(a.k) : a.go) + '"><span class="ico ' + a.c + '">' + ic(a.i) + '</span><span class="t"><b>' + esc(a.t) + '</b><small>' + esc(a.s) + '</small></span>' + ic('chev', 'chev') + '</a>';
+        var cuerpo = '<span class="ico ' + a.c + '">' + ic(a.i) + '</span><span class="t"><b>' + esc(a.t) + '</b><small>' + esc(a.s) + '</small></span>' + ic('chev', 'chev');
+        return a.k ? '<button class="row" type="button" data-open="' + esc(a.k) + '">' + cuerpo + '</button>' : '<a class="row" href="#' + a.go + '">' + cuerpo + '</a>';
       }).join('') + '</div>' : '<div class="card empty">Nada urgente por ahora.</div>') +
       '<div class="grid2"><div>' + sec('Agenda de hoy') +
       (ag.length ? '<div class="card list">' + ag.map(function (e) {
@@ -466,7 +467,7 @@
     var resto = todos.filter(function (l) { return l !== portal; });
     var reglas = String(c.reglas || '').split('|').map(function (s) { return s.trim(); }).filter(Boolean);
     var r = inv && inv.res ? inv.res : null;
-    $('#drawer').innerHTML = '<div class="dh">' + avatar(c, x.e) + '<div><h3>' + esc(c.nombre) + '</h3><span class="chip ' + ETQ_CL[x.e] + '">' + esc(c.perfil) + ' · ' + ETQ[x.e] + '</span></div><button class="x" type="button" id="dx" aria-label="Cerrar">' + ic('x') + '</button></div>' +
+    $('#drawer').innerHTML = '<div class="dh">' + avatar(c, x.e) + '<div><h3>' + esc(c.nombre) + '</h3><span class="chip ' + ETQ_CL[x.e] + '">' + esc(c.perfil) + ' · ' + ETQ[x.e] + '</span></div><button class="pill" type="button" id="dgo" style="margin-left:auto">Ir a Trabajo</button><button class="x" type="button" id="dx" aria-label="Cerrar" style="margin-left:0">' + ic('x') + '</button></div>' +
       '<div class="db">' +
       '<div class="dk"><div><small>Inversión del mes</small><b class="num">' + esc(inv && inv.gasto ? inv.gasto : '—') + '</b><span class="d">' + (inv && inv.presupuesto ? 'de ' + esc(inv.presupuesto) + (inv.pct != null ? ' · ' + inv.pct + '%' : '') : 'sin presupuesto') + '</span></div>' +
       '<div><small>' + esc(r ? r.nombre.replace(/ \(.*\)/, '') : 'Resultado') + '</small><b class="num">' + esc(r ? r.valor : '—') + '</b><span class="d">' + (r && r.meta && r.meta !== '-' ? 'meta ' + esc(r.meta) + (r.pct && r.pct !== '-' ? ' · ' + esc(r.pct) : '') : '') + '</span></div>' +
@@ -480,6 +481,7 @@
       '</div>';
     $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
     $('#dx').onclick = cerrar;
+    $('#dgo').onclick = function () { cerrar(); location.hash = '#trabajo'; };
     // Por verificar y bitácora: se leen del Drive solo al abrir.
     var llenarVerif = function () {
       var el = $('#dv'); if (!el || abierto !== clave) return;
@@ -507,11 +509,22 @@
       if (!modalAbierto) return;
       var cont = $('#mb');
       if (!j.bitacora) { cont.innerHTML = '<div class="empty">Este cliente todavía no tiene bitácora.</div>'; return; }
-      cont.innerHTML = '<nav class="outline" id="outline" aria-label="Secciones"></nav>' + md(j.bitacora) + (j.recortada ? '<div class="empty">Se muestra el inicio; lo más viejo está recortado.</div>' : '');
-      var hs = cont.querySelectorAll('.md h2');
-      $('#outline').innerHTML = Array.prototype.map.call(hs, function (h, i) { return '<button type="button" data-h="' + i + '">' + esc(h.textContent) + '</button>'; }).join('');
-      document.querySelectorAll('#outline button').forEach(function (b) { b.onclick = function () { hs[+b.dataset.h].scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
-      cont.scrollTop = 0;
+      var texto = md(j.bitacora) + (j.recortada ? '<div class="empty">Se muestra el inicio; lo más viejo está recortado.</div>' : '');
+      cont.innerHTML = '<div class="mlay"><aside class="moutline" id="outline" aria-label="Secciones"></aside><div class="mtext" id="mtext"><select class="osel" id="osel" aria-label="Ir a una sección"></select>' + texto + '</div></div>';
+      var hs = cont.querySelectorAll('.md h2'), fijas = [], fechadas = [];
+      Array.prototype.forEach.call(hs, function (h, i) { (/^\d{4}-\d{2}-\d{2}/.test(h.textContent) ? fechadas : fijas).push([i, h.textContent]); });
+      var grupo = function (t, l) { return l.length ? '<div class="og">' + t + ' · ' + l.length + '</div>' + l.map(function (p) { return '<button type="button" data-h="' + p[0] + '" title="' + esc(p[1]) + '">' + esc(p[1]) + '</button>'; }).join('') : ''; };
+      $('#outline').innerHTML = grupo('Secciones', fijas) + grupo('Entradas por fecha', fechadas);
+      $('#osel').innerHTML = '<option value="">Ir a una sección…</option>' + Array.prototype.map.call(hs, function (h, i) { return '<option value="' + i + '">' + esc(h.textContent) + '</option>'; }).join('');
+      var ir = function (i) { hs[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      document.querySelectorAll('#outline button').forEach(function (b) { b.onclick = function () { ir(+b.dataset.h); }; });
+      $('#osel').onchange = function () { if (this.value !== '') ir(+this.value); this.value = ''; };
+      var mt = $('#mtext'), botones = document.querySelectorAll('#outline button');
+      mt.onscroll = function () {
+        var act = -1; Array.prototype.forEach.call(hs, function (h, i) { if (h.offsetTop - mt.offsetTop <= mt.scrollTop + 60) act = i; });
+        botones.forEach(function (b) { b.classList.toggle('on', +b.dataset.h === act); });
+      };
+      mt.onscroll();
     };
     if (BIT[key]) return pintar(BIT[key]);
     api('bitacora', { cliente: key }).then(function (j) { BIT[key] = j; pintar(j); })
@@ -594,9 +607,11 @@
     api('finanzas').then(function (j) { FIN = j; FIN_ERR = ''; lsSet('mp_f', JSON.stringify(j)); refresca(); })
       .catch(function (e) { if (!e.auth) { FIN_ERR = e.message; refresca(); } });
   }
+  var ultima = Date.now();
   function cargar(silencioso) {
     girar(true);
     return api('datos').then(function (j) {
+      ultima = Date.now();
       D = visibles(j); lsSet('mp_cache', JSON.stringify(j));
       mostrar('app'); render(!!silencioso); cargarExtras();
     }).catch(function (e) {
@@ -633,6 +648,17 @@
     return true;
   }
   function salir() { ['mp_cfg', 'mp_cache', 'mp_t', 'mp_f'].forEach(lsDel); location.hash = ''; location.reload(); }
+
+  // El panel se actualiza solo: cada 5 minutos con la pestaña a la vista, y al volver a ella si pasaron más de 2.
+  // No actualiza mientras se escribe en un campo ni con la bitácora abierta.
+  function autoActualizar(minimo) {
+    if (!D || document.hidden || modalAbierto || Date.now() - ultima < minimo) return;
+    var el = document.activeElement;
+    if (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return;
+    cargar(true);
+  }
+  setInterval(function () { autoActualizar(270000); }, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) autoActualizar(120000); });
 
   function iniciar() {
     $('#refresh').innerHTML = ic('refresh'); $('#sbtn-i').innerHTML = ic('search'); $('#pal-i').innerHTML = ic('search');
