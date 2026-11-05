@@ -6,41 +6,61 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Michael Espinosa · Estratega Digital</title>
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="Panel personal de Michael Espinosa: clientes, tareas, accesos y bitácoras.">
+<meta name="description" content="Panel personal de Michael Espinosa: trabajo, tareas, enlaces y finanzas.">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Michael">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+<link rel="icon" href="assets/icons/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
 <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/portal.css">
 </head>
 <body>
 
 <section id="login" class="hide">
-  <img class="wordmark" src="assets/logo-michael-espinosa.png" alt="Michael Espinosa, estratega digital" width="1869" height="527">
-  <h1>Todos mis clientes, <em>en un solo lugar</em></h1>
-  <p>Tareas, accesos y bitácoras por cliente. Pega la clave de acceso una sola vez en este dispositivo.</p>
-  <label class="pega" for="enlace">Clave de acceso (PORTAL_TOKEN)</label>
-  <div class="pega-row">
-    <input id="enlace" type="password" inputmode="text" placeholder="Pega la clave" autocomplete="off" autocapitalize="off" spellcheck="false">
-    <button class="btn" id="entrar" type="button">Entrar</button>
-  </div>
-  <p class="err hide" id="login-err"></p>
+  <form class="gbox" id="login-form">
+    <img src="assets/logo-michael-espinosa.png" alt="Michael Espinosa, estratega digital" width="1869" height="527">
+    <h1>Todo lo mío, <em>en un solo lugar</em></h1>
+    <p>Trabajo, tareas, enlaces y finanzas. Entra con tu usuario y tu clave.</p>
+    <label class="sr" for="usuario">Usuario</label>
+    <input id="usuario" name="username" type="text" placeholder="Usuario" autocomplete="username" autocapitalize="off" spellcheck="false">
+    <label class="sr" for="clave">Clave</label>
+    <input id="clave" name="password" type="password" placeholder="Clave" autocomplete="current-password">
+    <button class="btn" id="entrar" type="submit">Entrar</button>
+    <p class="err hide" id="login-err" role="alert"></p>
+  </form>
 </section>
 
 <div id="app" class="hide">
-  <header class="top"><div class="top-in">
-    <div class="brand"><img class="mark" src="assets/logo-me.png" alt="" width="742" height="742"><div><b>Michael Espinosa</b><small>Estratega Digital</small></div></div>
-    <button class="icon-btn" id="refresh" aria-label="Actualizar"></button>
-  </div></header>
-  <main id="view"></main>
-  <nav class="tabs" id="tabs" aria-label="Secciones"></nav>
+  <div class="win" id="win">
+    <aside class="side" aria-label="Áreas">
+      <img class="wm" src="assets/logo-michael-espinosa.png" alt="Michael Espinosa, estratega digital" width="150" height="42">
+      <div class="cap">Mi vida</div>
+      <nav id="navs"></nav>
+    </aside>
+    <div class="col">
+      <header class="topbar">
+        <button class="sbtn" id="sbtn" type="button" aria-label="Buscar o saltar a"><span id="sbtn-i"></span><span class="tx">Buscar o saltar a…</span><kbd>⌘K</kbd></button>
+        <button class="icon-btn" id="refresh" type="button" aria-label="Actualizar"></button>
+        <button class="avb" id="avb" type="button" aria-label="Mi cuenta"><img id="avimg" src="assets/foto-perfil.jpg" alt=""></button>
+        <div class="menu" id="menu"><button type="button" id="mfoto">Cambiar foto</button><button type="button" id="msalir">Cerrar sesión</button></div>
+        <input type="file" id="file" accept="image/*" hidden>
+      </header>
+      <main id="view" class="main"></main>
+    </div>
+    <div class="scrim" id="scrim"></div>
+    <aside class="drawer" id="drawer" aria-label="Detalle del cliente"></aside>
+  </div>
+  <nav class="mnav" id="tabs" aria-label="Secciones"></nav>
 </div>
+
+<div class="pal" id="pal"><div class="palbox"><div class="palin"><span id="pal-i"></span><input id="pq" type="search" placeholder="Cliente, plataforma, portal…" autocomplete="off" aria-label="Buscar"></div><div id="plist"></div></div></div>
 
 <script src="assets/app.js"></script>
 <script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(function(){});</script>

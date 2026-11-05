@@ -1,6 +1,6 @@
 # Michael Espinosa · Estratega Digital
 
-Panel personal: clientes, tareas, accesos y bitácoras. PWA estática (GitHub Pages) más un widget de iPhone (Scriptable).
+Panel personal con cinco áreas: Hoy, Trabajo (clientes), Tareas, Finanzas y Enlaces. PWA estática (GitHub Pages) más un widget de iPhone (Scriptable).
 
 **Este repo es público: solo lleva la app.** Ningún dato real vive aquí. Los datos (tareas, clientes, enlaces, bitácoras) salen del Apps Script del agente de Telegram, con una clave que está en el teléfono, no en el código.
 
@@ -8,18 +8,25 @@ Panel personal: clientes, tareas, accesos y bitácoras. PWA estática (GitHub Pa
 
 - `index.html`, `assets/app.js`, `assets/portal.css`: el portal.
 - `manifest.webmanifest`, `sw.js`: instalación en la pantalla de inicio (el service worker solo guarda la carcasa, nunca los datos).
+- `assets/logos/<clave>.png`: logos de clientes y plataformas. La clave es la del cliente (`compensar`, `geniusbet`…) o la de la herramienta (`basis`, `analytics`, `tagmanager`, `openai`, `ucompensar`, `drive`, `sheets`, `github`). Si falta el archivo se muestran las iniciales.
+- `assets/icons/`: favicon e íconos con el logo «me» circular. `assets/foto-perfil.jpg`: la foto del avatar.
 - `widget/Panel.js`: widget de Scriptable.
 - `robots.txt` y `noindex`: no se indexa.
 
 ## Cómo se conecta
 
-1. En el proyecto `agente-telegram` se sube `src/Portal.js` y se redespliega (`clasp deploy -i …`, ver su CLAUDE.md).
-2. En el editor del Apps Script se corre `portalCrearTokens()` y `portalSembrar()`. El registro muestra dos enlaces: el del portal y el del widget.
-3. El enlace del portal se abre una vez en el iPhone (Safari → Compartir → Agregar a inicio). La clave queda guardada en el teléfono y se borra de la barra de direcciones.
-4. El enlace del widget se pega en Scriptable la primera vez que se corre `widget/Panel.js`.
+1. En el proyecto `agente-telegram`: en Propiedades del script crear `PORTAL_USER` (el nombre) y `PORTAL_PASS` (la clave); subir `src/Portal.js` y redesplegar (`clasp push`, `clasp deploy -i …`, ver su CLAUDE.md).
+2. En el editor del script correr `portalProtegerClave()` (cifra la clave y borra `PORTAL_PASS`), `portalCrearTokens()` si aún no hay tokens y `portalSembrar()`.
+3. Abrir el portal y entrar con usuario y clave. El script responde el token y queda guardado en el dispositivo; la clave nunca va en la URL ni en el repo.
+4. En el iPhone: Safari → Compartir → Agregar a inicio. El widget sigue usando su propio token (`portalEnviarEnlaces()` manda el enlace por Telegram).
 
-Para rotar una clave: borrar `PORTAL_TOKEN` o `WIDGET_TOKEN` en las propiedades del script y correr `portalCrearTokens()` de nuevo.
+Cinco fallos seguidos bloquean el acceso 15 minutos. Para cambiar la clave: escribir de nuevo `PORTAL_PASS` y correr `portalProtegerClave()`. Para rotar el token (p. ej. si se pierde el teléfono): borrar `PORTAL_TOKEN` y correr `portalCrearTokens()`.
 
 ## Datos
 
 Las hojas `Clientes` y `Enlaces` del Sheet del agente mandan: se editan ahí. Las bitácoras se leen de Drive (las sincroniza `sync_taller.py` cada 10 minutos).
+
+- **Trabajo** (`?action=trabajo`): la inversión del mes y lo por verificar de cada cliente salen de la sección «Inversión del mes» de su bitácora.
+- **Finanzas** (`?action=finanzas`): gastos, ingresos, pagos próximos y movimientos del Sheet del agente.
+- **Enlaces**: la hoja `Enlaces` agrupa por `tipo`: `Portal` (portales de clientes), `Plataforma` y `Herramienta`/`Archivo` con cliente `general`, y `Personal`. Tableros, forecasts y copys solo salen en la ficha del cliente.
+- Si el script aún no tiene las acciones `trabajo` y `finanzas`, el panel avisa «Falta subir y redesplegar el script».
