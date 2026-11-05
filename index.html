@@ -64,6 +64,19 @@
   <header class="mh"><div><h3 id="mt"></h3><small id="ms"></small></div><button class="x" id="mx" type="button" aria-label="Cerrar">&times;</button></header>
   <div class="mbody" id="mb"></div></div></div>
 
+<div class="modal" id="tmodal"><form class="mbox tbox" id="tform" autocomplete="off">
+  <header class="mh"><h3 id="tt">Nueva tarea</h3><button class="x" id="tx" type="button" aria-label="Cerrar">&times;</button></header>
+  <div class="tfields">
+    <div><label for="t-tarea">Tarea</label><input class="fi" id="t-tarea" type="text" maxlength="300" placeholder="¿Qué hay que hacer?" required></div>
+    <div><label for="t-notas">Notas</label><textarea class="fi" id="t-notas" rows="3" maxlength="1000" placeholder="Opcional"></textarea></div>
+    <div class="trow"><div><label for="t-fecha">Fecha límite</label><input class="fi" id="t-fecha" type="date"></div>
+    <div><label for="t-prio">Prioridad</label><select class="fi" id="t-prio"><option value="alta">Alta</option><option value="media" selected>Media</option><option value="baja">Baja</option></select></div></div>
+    <div><label for="t-cli">Cliente</label><select class="fi" id="t-cli"></select></div>
+  </div>
+  <footer class="tfoot"><button class="pill" id="tc" type="button">Cancelar</button><button class="btn sm" type="submit">Guardar</button></footer>
+</form></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <div class="pal" id="pal"><div class="palbox"><div class="palin"><span id="pal-i"></span><input id="pq" type="search" placeholder="Cliente, plataforma, portal…" autocomplete="off" aria-label="Buscar"></div><div id="plist"></div></div></div>
 
 <script src="assets/app.js"></script>

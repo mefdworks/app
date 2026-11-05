@@ -247,11 +247,40 @@ details.vf .md{padding:0 14px 14px}
   .mnav a.on{background:var(--acc-soft);color:var(--acc-ink)}
   .mnav a svg{width:21px;height:21px}
   .mnav .badge{position:absolute;top:4px;right:calc(50% - 22px);background:var(--yel);color:var(--ink);font-size:9.5px;font-weight:600;border-radius:999px;padding:0 5px;min-width:16px;text-align:center}
+  .toast{bottom:84px}
   .scrim{position:fixed}.drawer{position:fixed;top:auto;right:0;left:0;bottom:0;width:auto;height:88dvh;border-radius:18px 18px 0 0;border-left:0;transform:translateY(105%)}
   .drawer.on{transform:none}
   .cat{grid-template-columns:90px 1fr 84px;gap:8px}
   .fhero .big{font-size:32px}
 }
+/* ── Acciones de tareas ── */
+.row.tk{align-items:flex-start}
+.chk{width:20px;height:20px;border-radius:50%;border:2px solid var(--ink3);background:#fff;flex:none;margin-top:1px;padding:0;position:relative}
+.chk.p-alta{border-color:var(--crit)}.chk.p-media{border-color:var(--yel)}.chk.p-baja{border-color:var(--ink3)}
+.chk:hover{background:var(--good-soft);border-color:var(--good)}
+.chk:hover::after{content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;border:solid var(--good);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.kebab{width:30px;height:30px;border-radius:8px;border:0;background:none;display:grid;place-items:center;color:var(--ink3);flex:none}
+.kebab:hover{background:var(--line2);color:var(--ink)}.kebab svg{fill:currentColor;stroke:none}
+button.chip[data-act]:hover,button.chip[data-open]:hover{filter:brightness(.96);cursor:pointer}
+.pop{position:fixed;z-index:80;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:5px;min-width:210px;max-height:min(60vh,420px);overflow:auto}
+.pi{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 11px;border-radius:8px;font-size:12.5px}
+.pi:hover{background:var(--side)}.pi.on{color:var(--acc-ink);font-weight:600}.pi.on::after{content:" ✓"}.pi.dg{color:var(--crit)}
+.psep{height:1px;background:var(--line2);margin:4px 2px}
+.plabel{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);font-weight:600;padding:8px 11px 4px}
+.pdate{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--ink3);padding:6px 11px 8px}
+.pdate input{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12.5px;color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:.3s;z-index:90;background:var(--ink);color:#fff;border-radius:12px;padding:10px 14px;display:flex;gap:16px;align-items:center;font-size:12.5px;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{border:0;background:none;color:var(--yel);font-weight:600;padding:0}
+.btn.sm{height:36px;padding:0 16px;font-size:12.5px;white-space:nowrap}
+.mbox.tbox{width:min(520px,100%);height:auto;max-height:100%}
+.tfields{padding:16px 22px;display:grid;gap:12px;overflow:auto}
+.tfields label{display:block;font-size:11.5px;color:var(--ink2);margin-bottom:4px;font-weight:500}
+.trow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fi{font-family:inherit;width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff;font-size:13px;color:var(--ink);outline:0}
+.fi:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(108,119,193,.2)}
+textarea.fi{resize:vertical;min-height:70px}
+.tfoot{display:flex;justify-content:flex-end;gap:10px;padding:12px 22px 18px;border-top:1px solid var(--line2)}
 /* ── Bitácora en ventana emergente ── */
 .btnbit{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;text-align:left;color:var(--acc-ink)}
 .btnbit:hover{border-color:var(--pri)}

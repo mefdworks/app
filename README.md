@@ -30,3 +30,8 @@ Las hojas `Clientes` y `Enlaces` del Sheet del agente mandan: se editan ahí. La
 - **Finanzas** (`?action=finanzas`): gastos, ingresos, pagos próximos y movimientos del Sheet del agente.
 - **Enlaces**: la hoja `Enlaces` agrupa por `tipo`: `Portal` (portales de clientes), `Plataforma` y `Herramienta`/`Archivo` con cliente `general`, y `Personal`. Lo único por cliente es su portal: los enlaces de la primera versión (anuncios, informes, copys, tableros, forecasts, cuentas) no se muestran; `portalLimpiarEnlaces()` los archiva en la hoja.
 - Si el script aún no tiene las acciones `trabajo` y `finanzas`, el panel avisa «Falta subir y redesplegar el script».
+
+## Tareas editables
+
+El panel crea y cambia tareas por `POST ?portal=tarea` (token en el cuerpo): completar, fecha, prioridad, cliente, título, notas, en curso y cancelar. Las escribe el Apps Script con las mismas funciones que usa el bot. La pantalla cambia primero y se revierte si el script responde con error; cada cambio ofrece «Deshacer».
+
