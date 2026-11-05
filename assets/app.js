@@ -76,8 +76,13 @@
       return j;
     });
   }
-  // Enlaces con tipo «Archivado» (los que reemplazó la semilla nueva) no se muestran.
-  function visibles(d) { if (d && d.enlaces) d.enlaces = d.enlaces.filter(function (l) { return l.tipo !== 'Archivado'; }); return d; }
+  // Solo se ven el portal de cada cliente, lo personal y los accesos generales; los enlaces por cliente de la primera versión (tableros, copys, cuentas…) ya no van.
+  function enlaceVisible(l) {
+    if (l.tipo === 'Archivado') return false;
+    if (l.tipo === 'Portal' || l.tipo === 'Personal') return true;
+    return l.cliente === 'general' && ['Plataforma', 'Herramienta', 'Archivo', 'Código'].indexOf(l.tipo) >= 0;
+  }
+  function visibles(d) { if (d && d.enlaces) d.enlaces = d.enlaces.filter(enlaceVisible); return d; }
   function clientesTodos() { return D.clientes.filter(function (c) { return c.cliente !== 'general'; }); }
   function clienteDe(t) {
     var c = norm(t.cliente), n = norm(t.negocio);
@@ -108,7 +113,7 @@
   // ── Logos: assets/logos/<clave>.png; si el archivo no existe se muestran las iniciales ──
   var ALIAS_LOGO = { basisdsp: 'basis', googleanalytics: 'analytics', googletagmanager: 'tagmanager', anunciosopenai: 'openai', campanasucompensar: 'ucompensar',
     driveadcom: 'drive', drivepersonal: 'drive', googledrive: 'drive', googlesheets: 'sheets', github: 'github', githubadcom: 'github', githubpersonal: 'github',
-    xads: 'x', portaladcom: 'general', panelpersonal: 'general', shopifymara: 'mara' };
+    xads: 'x', portaladcom: 'general', panelpersonal: 'me' };
   var MARCAS = [[/facebook\.com|fb\.com|instagram\.com/, 'meta'], [/^ads\.google\.com$/, 'google'], [/tiktok\.com/, 'tiktok'],
     [/linkedin\.com/, 'linkedin'], [/(^|\.)x\.com$|twitter\.com$/, 'x'], [/youtube\.com/, 'youtube']];
   function marca(url) {
@@ -133,15 +138,18 @@
     if (box) { box.classList.remove('logo'); box.insertAdjacentText('afterbegin', box.dataset.mono || ''); }
     img.remove();
   }, true);
-  function conLogo(key, mono) { return SIN_LOGO[key] ? esc(mono) : '<img src="assets/logos/' + esc(key) + '.png" alt="" data-logo="' + esc(key) + '">'; }
+  // Los clientes de Adcom llevan el logo de Adcom; los freelance y personales, el «me» de Michael.
+  function logoPerfil(clave) { return clave === 'general' || perfilDe(clave) === 'adcom' ? 'assets/logos/adcom.png' : 'assets/logos/me.png'; }
+  function imgLogo(src, mono) { return SIN_LOGO[src] ? esc(mono) : '<img src="' + esc(src) + '" alt="" data-logo="' + esc(src) + '">'; }
   function avatar(c, sem) {
     var mono = inicial(c.nombre);
-    return '<div class="av ' + perfilDe(c.cliente) + (SIN_LOGO[c.cliente] ? '' : ' logo') + '" data-mono="' + esc(mono) + '">' + conLogo(c.cliente, mono) + (sem ? '<span class="sem ' + sem + '"></span>' : '') + '</div>';
+    return '<div class="av logo ' + perfilDe(c.cliente) + '" data-mono="' + esc(mono) + '">' + imgLogo(logoPerfil(c.cliente), mono) + (sem ? '<span class="sem ' + sem + '"></span>' : '') + '</div>';
   }
   function tileIco(l) {
-    var key = logoKey(l), mono = inicial(l.nombre);
-    var pf = l.tipo === 'Portal' ? perfilDe(l.cliente) : '';
-    return '<span class="ti' + (pf ? ' av ' + pf : '') + '" data-mono="' + esc(mono) + '">' + conLogo(key, mono) + '</span>';
+    var mono = inicial(l.nombre), src;
+    if (l.tipo === 'Portal' || (l.tipo === 'Personal' && l.cliente !== 'general')) src = logoPerfil(l.cliente);
+    else src = 'assets/logos/' + logoKey(l) + '.png';
+    return '<span class="ti" data-mono="' + esc(mono) + '">' + imgLogo(src, mono) + '</span>';
   }
   function tile(l) {
     var c = l.cliente !== 'general' ? cliente(l.cliente) : null;
@@ -181,6 +189,7 @@
       s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
       s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
       s = s.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+      s = s.replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,;:]|$)/g, '$1<em>$2</em>');
       s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
       s = s.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
       return s;
@@ -362,13 +371,14 @@
     return { step: step, max: Math.ceil(max / step) * step };
   }
   function chartFin(f) {
-    var W = 660, H = 230, L = 52, R = 14, T = 14, B = 26, N = Math.max(FIN.dias_mes, f.ca.length), proy = proyeccion();
+    // El dibujo se mide con el ancho disponible para que las letras no se agranden en pantallas anchas.
+    var W = Math.max(480, Math.min(1200, ($('#view').clientWidth || 700) - 120)), H = Math.round(Math.max(200, Math.min(300, W * 0.32))), L = 52, R = 14, T = 14, B = 26, N = Math.max(FIN.dias_mes, f.ca.length), proy = proyeccion();
     var sc = tope(Math.max(f.antTot, proy, FIN.gasto, 1)), max = sc.max;
     var x = function (d) { return L + (d - 1) / (N - 1 || 1) * (W - L - R); }, y = function (v) { return T + (1 - v / max) * (H - T - B); };
     var path = function (a, n) { return a.slice(0, n).map(function (v, i) { return (i ? 'L' : 'M') + x(i + 1).toFixed(1) + ' ' + y(v).toFixed(1); }).join(' '); };
     var grid = '', v;
-    for (v = 0; v <= max + 1; v += sc.step) grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line2)"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="10" fill="var(--ink3)">' + (v ? M(v).replace('$', '').replace(' M', ' M') : '0') + '</text>';
-    [1, 5, 10, 15, 20, 25, 30].forEach(function (d) { if (d <= N) grid += '<text x="' + x(d) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="var(--ink3)">' + d + '</text>'; });
+    for (v = 0; v <= max + 1; v += sc.step) grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line2)"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" fill="var(--ink3)">' + (v ? M(v).replace('$', '').replace(' M', ' M') : '0') + '</text>';
+    [1, 5, 10, 15, 20, 25, 30].forEach(function (d) { if (d <= N) grid += '<text x="' + x(d) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="var(--ink3)">' + d + '</text>'; });
     var n = f.cm.length, hay = n > 0;
     return '<div class="chart" id="chart" data-w="' + W + '" data-h="' + H + '"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Gasto acumulado del mes contra el mes anterior"><defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--pri)" stop-opacity=".3"/><stop offset="1" stop-color="var(--pri)" stop-opacity="0"/></linearGradient></defs>' + grid +
       '<path d="' + path(f.ca, f.ca.length) + '" fill="none" stroke="var(--ink3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".75"/>' +
@@ -465,8 +475,8 @@
       (c.resumen ? '<div class="dsec"><h2 class="s">Resumen</h2><div class="card facts">' + esc(c.resumen) + (reglas.length ? '<ul>' + reglas.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>' : '') + '</div></div>' : '') +
       '<div class="dsec"><h2 class="s">Tareas · ' + x.ts.length + '</h2>' + listaTareas(x.ts.sort(orden), 'Sin tareas abiertas.') + '</div>' +
       '<div class="dsec"><h2 class="s">Por verificar</h2><div class="card" id="dv"><div class="loading">Leyendo…</div></div></div>' +
-      '<div class="dsec"><h2 class="s">Bitácora</h2><div class="card"><details class="vf" id="dbit"><summary>Abrir la bitácora completa</summary><div id="dbc"><div class="loading">Leyendo…</div></div></details></div></div>' +
-      (resto.length ? '<div class="dsec"><h2 class="s">Accesos · ' + resto.length + '</h2><div class="bals">' + resto.map(tile).join('') + '</div></div>' : '') +
+      '<div class="dsec"><h2 class="s">Bitácora</h2><button class="card btnbit" type="button" id="dbit">' + ic('book') + '<span><b>Leer la bitácora de ' + esc(c.nombre) + '</b><small>Se abre en una ventana</small></span>' + ic('arrow', 'chev') + '</button></div>' +
+      (resto.length ? '<div class="dsec"><h2 class="s">Asociado · ' + resto.length + '</h2><div class="bals">' + resto.map(tile).join('') + '</div></div>' : '') +
       '</div>';
     $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
     $('#dx').onclick = cerrar;
@@ -477,27 +487,43 @@
       el.innerHTML = v ? '<div class="md" style="padding:14px">' + md(v.texto).replace(/^<div class="md">|<\/div>$/g, '') + '</div>' : '<div class="empty">Esta bitácora no tiene pendientes por verificar.</div>';
     };
     if (VERIF) llenarVerif(); else api('verificar').then(function (j) { VERIF = j; llenarVerif(); }).catch(function (e) { var el = $('#dv'); if (el) el.innerHTML = '<div class="empty">No pude leerlo: ' + esc(e.message) + '</div>'; });
-    var key = c.bitacora || c.cliente;
-    var pintarBit = function (j) {
-      var el = $('#dbc'); if (!el || abierto !== clave) return;
-      el.innerHTML = j.bitacora ? md(j.bitacora) + (j.recortada ? '<div class="empty">Se muestra el inicio; lo más viejo está recortado.</div>' : '') : '<div class="empty">Este cliente todavía no tiene bitácora.</div>';
-    };
-    $('#dbit').addEventListener('toggle', function () {
-      if (!this.open) return;
-      if (BIT[key]) return pintarBit(BIT[key]);
-      api('bitacora', { cliente: key }).then(function (j) { BIT[key] = j; pintarBit(j); }).catch(function (e) { var el = $('#dbc'); if (el) el.innerHTML = '<div class="empty">No pude leerla: ' + esc(e.message) + '</div>'; });
-    });
+    $('#dbit').onclick = function () { abrirBitacora(clave); };
   }
   function cerrar() {
     abierto = null; $('#drawer').classList.remove('on'); $('#scrim').classList.remove('on');
     if (/^#c\//.test(location.hash)) history.replaceState(null, '', location.pathname + '#trabajo');
   }
 
+  // ── Bitácora en ventana emergente ──
+  var modalAbierto = false;
+  function abrirBitacora(clave) {
+    var c = cliente(clave); if (!c) return;
+    var key = c.bitacora || c.cliente;
+    modalAbierto = true;
+    $('#mt').textContent = 'Bitácora · ' + c.nombre; $('#ms').textContent = c.perfil;
+    $('#mb').innerHTML = '<div class="loading">Leyendo la bitácora…</div>';
+    $('#modal').classList.add('on'); document.body.classList.add('noscroll');
+    var pintar = function (j) {
+      if (!modalAbierto) return;
+      var cont = $('#mb');
+      if (!j.bitacora) { cont.innerHTML = '<div class="empty">Este cliente todavía no tiene bitácora.</div>'; return; }
+      cont.innerHTML = '<nav class="outline" id="outline" aria-label="Secciones"></nav>' + md(j.bitacora) + (j.recortada ? '<div class="empty">Se muestra el inicio; lo más viejo está recortado.</div>' : '');
+      var hs = cont.querySelectorAll('.md h2');
+      $('#outline').innerHTML = Array.prototype.map.call(hs, function (h, i) { return '<button type="button" data-h="' + i + '">' + esc(h.textContent) + '</button>'; }).join('');
+      document.querySelectorAll('#outline button').forEach(function (b) { b.onclick = function () { hs[+b.dataset.h].scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
+      cont.scrollTop = 0;
+    };
+    if (BIT[key]) return pintar(BIT[key]);
+    api('bitacora', { cliente: key }).then(function (j) { BIT[key] = j; pintar(j); })
+      .catch(function (e) { if (modalAbierto) $('#mb').innerHTML = '<div class="empty">No pude leerla: ' + esc(e.message) + '</div>'; });
+  }
+  function cerrarBitacora() { modalAbierto = false; $('#modal').classList.remove('on'); document.body.classList.remove('noscroll'); }
+
   // ── Buscador ⌘K ──
   var palSel = 0, palItems = [];
   function palRender() {
     $('#plist').innerHTML = palItems.length ? palItems.map(function (a, i) {
-      var ico = a.l ? tileIco(a.l).replace('class="ti', 'class="ti sm') : '<span class="ico neu">' + (a.k === 'open' ? esc(inicial(a.n)) : ic('arrow')) + '</span>';
+      var ico = a.l ? tileIco(a.l).replace('class="ti', 'class="ti sm') : a.k === 'open' ? '<span class="ti sm" data-mono="' + esc(inicial(a.n)) + '">' + imgLogo(logoPerfil(a.v), inicial(a.n)) + '</span>' : '<span class="ico neu">' + ic('arrow') + '</span>';
       return '<button class="pit' + (i === palSel ? ' on' : '') + '" type="button" data-i="' + i + '">' + ico + '<span><b>' + esc(a.n) + '</b><small>' + esc(a.d) + '</small></span><span class="k">' + ({ go: 'Sección', open: 'Cliente', link: 'Enlace' }[a.k]) + '</span></button>';
     }).join('') : '<div class="empty">Nada coincide.</div>';
     document.querySelectorAll('.pit').forEach(function (b) { b.onclick = function () { palGo(+b.dataset.i); }; });
@@ -638,9 +664,11 @@
     $('#pal').onclick = function (e) { if (e.target === this) palAbrir(false); };
     $('#pq').oninput = function () { palFiltrar(this.value); };
     $('#scrim').onclick = cerrar;
+    $('#mx').onclick = cerrarBitacora;
+    $('#modal').onclick = function (e) { if (e.target === this) cerrarBitacora(); };
     document.addEventListener('keydown', function (e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && D) { e.preventDefault(); palAbrir(!$('#pal').classList.contains('on')); return; }
-      if (e.key === 'Escape') { if ($('#pal').classList.contains('on')) palAbrir(false); else if (abierto) cerrar(); return; }
+      if (e.key === 'Escape') { if ($('#pal').classList.contains('on')) palAbrir(false); else if (modalAbierto) cerrarBitacora(); else if (abierto) cerrar(); return; }
       if (!$('#pal').classList.contains('on')) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); palSel = Math.min(palItems.length - 1, palSel + 1); palRender(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = Math.max(0, palSel - 1); palRender(); }
