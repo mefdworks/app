@@ -336,3 +336,14 @@ textarea.fi{resize:vertical;min-height:70px}
 .ck[hidden]{display:none!important}
 #n-texto{min-height:180px}
 #nmodal .tfoot .grow{flex:1}
+
+/* Tareas por cliente */
+.cards3.tg{grid-template-columns:repeat(auto-fill,minmax(340px,1fr));align-items:start}
+.tgc{overflow:hidden}
+.tgh{display:flex;align-items:center;gap:8px;padding:12px 12px 10px 14px}
+.tgh .cn{flex:1;border:0;background:none;text-align:left;padding:0;cursor:pointer}
+.tgc .list{border-top:1px solid var(--line2)}
+.tgc .row.tk:first-child{border-top:0}
+.seg.keep{display:inline-flex!important}
+@media (max-width:760px){.cards3.tg{grid-template-columns:minmax(0,1fr)}}
+.tgh .kebab svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}

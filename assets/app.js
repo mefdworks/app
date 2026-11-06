@@ -12,7 +12,7 @@
   var NOTAS = null;      // notas libres (hoja Notas)
   var VERIF = null;      // "por verificar" (carga perezosa)
   var BIT = {};          // bitácoras por cliente
-  var st = { vista: 'lista', filtro: 'Todos', q: '', tarea: 'Todas', tcliente: '', ncliente: '', netq: 'Todas' };
+  var st = { vista: 'lista', filtro: 'Todos', q: '', tarea: 'Todas', tcliente: '', tvista: 'clientes', ncliente: '', netq: 'Todas' };
   var abierto = null;    // cliente abierto en el panel lateral
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -39,6 +39,7 @@
     book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5M9 7h6"/>',
     chart: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
     note: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
     chev: '<path d="M9 5l7 7-7 7"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', arrow: '<path d="M7 17L17 7M9 7h8v8"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
   };
   function ic(n, c) { return '<svg class="i ' + (c || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + ICONOS[n] + '</svg>'; }
@@ -175,17 +176,17 @@
     if (!t.fecha_limite) return '<button type="button" class="chip" data-act="fecha">+ Fecha</button>';
     return chipFecha(t.fecha_limite).replace('<span class="chip', '<button type="button" data-act="fecha" class="chip').replace('</span>', '</button>');
   }
-  function filaTarea(t) {
+  function filaTarea(t, sinCli) {
     var perfil = t._c ? perfilDe(t._c) : '';
     var cl = t._c ? '<button class="chip ' + perfil + '" type="button" data-open="' + esc(t._c) + '">' + esc(nombreCliente(t._c)) + '</button>'
       : (t.cliente || t.negocio ? '<span class="chip">' + esc(t.cliente || t.negocio) + '</span>' : '');
     return '<div class="row tk" data-id="' + esc(t.id) + '"><button class="chk p-' + esc(t.prioridad || 'media') + '" type="button" data-act="done" aria-label="Marcar como hecha" title="Marcar como hecha"></button><div class="t"><b>' + esc(t.tarea) + '</b>' +
       (t.notas ? '<small>' + esc(t.notas) + '</small>' : '') +
-      '<div class="meta">' + fechaBtn(t) + cl + (t.estado === 'en curso' ? '<span class="chip acc">En curso</span>' : '') + '</div></div>' +
+      '<div class="meta">' + fechaBtn(t) + (sinCli ? '' : cl) + (t.estado === 'en curso' ? '<span class="chip acc">En curso</span>' : '') + '</div></div>' +
       '<button class="kebab" type="button" data-act="menu" aria-label="Más acciones" title="Más acciones"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button></div>';
   }
   function listaTareas(ts, vacio) {
-    return ts.length ? '<div class="card list">' + ts.map(filaTarea).join('') + '</div>' : '<div class="card empty">' + esc(vacio) + '</div>';
+    return ts.length ? '<div class="card list">' + ts.map(function (t) { return filaTarea(t, false); }).join('') + '</div>' : '<div class="card empty">' + esc(vacio) + '</div>';
   }
   function sec(titulo, accion) { return '<div class="sec"><h2 class="s">' + esc(titulo) + '</h2>' + (accion || '') + '</div>'; }
 
@@ -364,6 +365,23 @@
       ['Todos', 'Con alertas', 'Adcom', 'Freelance', 'Personal'].map(function (f) { return '<button class="pill' + (st.filtro === f ? ' on' : '') + '" type="button" data-f="' + f + '">' + f + '</button>'; }).join('') + '</div></div>' + cuerpo + pie + '</div>';
   }
 
+  // Tareas agrupadas: una tarjeta por cliente que tenga tareas abiertas (los que no tienen no aparecen).
+  function tarjetasTareas(ts) {
+    if (!ts.length) return '<div class="card empty">No hay tareas con ese filtro.</div>';
+    var h = hoyIso(), grupos = {}, claves = [];
+    ts.forEach(function (t) { var k = t._c || ''; if (!grupos[k]) { grupos[k] = []; claves.push(k); } grupos[k].push(t); });
+    var urg = function (k) { var f = grupos[k].map(function (t) { return t.fecha_limite || '9999'; }).sort()[0]; return k === '' ? '99999' : f; };
+    claves.sort(function (a, b) { return urg(a) < urg(b) ? -1 : urg(a) > urg(b) ? 1 : grupos[b].length - grupos[a].length; });
+    return '<div class="cards3 tg">' + claves.map(function (k) {
+      var g = grupos[k], c = k ? cliente(k) : null, venc = g.filter(function (t) { return t.fecha_limite && t.fecha_limite < h; }).length;
+      var cab = c ? '<button class="cn" type="button" data-open="' + esc(k) + '">' + avatar(c, '') + '<div><b>' + esc(c.nombre) + '</b><small>' + esc(c.perfil) + '</small></div></button>'
+        : '<div class="cn"><div><b>Sin cliente</b><small>Tareas sueltas</small></div></div>';
+      return '<div class="card tgc"><div class="tgh">' + cab + '<span class="chip' + (venc ? ' crit' : '') + '">' + g.length + (venc ? ' · ' + venc + ' vencida' + (venc > 1 ? 's' : '') : '') + '</span>' +
+        '<button class="kebab" type="button" data-act="nueva" data-cliente="' + esc(c ? c.nombre : '') + '" aria-label="Nueva tarea" title="Nueva tarea">' + ic('plus') + '</button></div>' +
+        '<div class="list">' + g.map(function (t) { return filaTarea(t, !!k); }).join('') + '</div></div>';
+    }).join('') + '</div>';
+  }
+
   // Tareas
   function vTareas() {
     var h = hoyIso(), ts = tareasAbiertas(), f = st.tarea;
@@ -375,14 +393,17 @@
       if (f === 'Sin fecha') return !t.fecha_limite;
       return true;
     }).sort(orden);
-    return '<div class="view"><div class="head"><div><h1 class="t">Tareas</h1><p class="sub">' + ts.length + ' ' + (f === 'Todas' ? 'abiertas' : f.toLowerCase()) + '</p></div><button class="btn sm" type="button" data-act="nueva">+ Nueva tarea</button></div><div class="tools"><div class="pills">' +
+    var porCliente = st.tvista === 'clientes';
+    return '<div class="view"><div class="head"><div><h1 class="t">Tareas</h1><p class="sub">' + ts.length + ' ' + (f === 'Todas' ? 'abiertas' : f.toLowerCase()) + '</p></div>' +
+      '<div class="seg keep" role="group" aria-label="Vista"><button type="button" data-tvista="clientes" class="' + (porCliente ? 'on' : '') + '">Por cliente</button><button type="button" data-tvista="lista" class="' + (!porCliente ? 'on' : '') + '">Lista</button></div>' +
+      '<button class="btn sm" type="button" data-act="nueva">+ Nueva tarea</button></div><div class="tools"><div class="pills">' +
       ['Todas', 'Vencidas', 'Hoy', 'Semana', 'Sin fecha'].map(function (x) { return '<button class="pill' + (f === x ? ' on' : '') + '" type="button" data-tarea="' + x + '">' + x + '</button>'; }).join('') +
       '<select class="pill" id="tcl" aria-label="Cliente"><option value="">Todos los clientes</option>' + clientesTodos().map(function (c) { return '<option value="' + esc(c.cliente) + '"' + (st.tcliente === c.cliente ? ' selected' : '') + '>' + esc(c.nombre) + '</option>'; }).join('') + '</select></div></div>' +
-      listaTareas(ts, 'No hay tareas con ese filtro.') + '</div>';
+      (porCliente ? tarjetasTareas(ts) : listaTareas(ts, 'No hay tareas con ese filtro.')) + '</div>';
   }
 
   // Notas
-  var ETQ = ['reunión', 'idea', 'pendiente', 'general'];
+  var ETQ_NOTA = ['reunión', 'idea', 'pendiente', 'general'];
   function clavesBit() { return clientesTodos().map(function (c) { return { k: c.bitacora || c.cliente, n: c.nombre }; }); }
   function nombreBit(k) { var f = clavesBit().filter(function (x) { return x.k === k; })[0]; return f ? f.n : k; }
   function sinApostrofo(x) { return String(x || '').replace(/^'(?=[=+])/, ''); }
@@ -403,7 +424,7 @@
     var carga = NOTAS === null ? '<div class="card empty">Cargando notas…</div>' : null;
     return '<div class="view"><div class="head"><div><h1 class="t">Notas</h1><p class="sub">' + (NOTAS ? lista.length + ' de ' + NOTAS.length : 'Reuniones, ideas y pendientes') + '</p></div><button class="btn sm" type="button" data-act="nnueva">+ Nueva nota</button></div>' +
       '<div class="tools"><label class="search">' + ic('search') + '<input id="q" type="search" placeholder="Buscar en notas" value="' + esc(st.q) + '" autocomplete="off"></label><div class="pills">' +
-      ['Todas'].concat(ETQ).map(function (x) { return '<button class="pill' + (st.netq === x ? ' on' : '') + '" type="button" data-etq="' + x + '">' + x + '</button>'; }).join('') +
+      ['Todas'].concat(ETQ_NOTA).map(function (x) { return '<button class="pill' + (st.netq === x ? ' on' : '') + '" type="button" data-etq="' + x + '">' + x + '</button>'; }).join('') +
       '<select class="pill" id="ncl" aria-label="Cliente"><option value="">Todos los clientes</option><option value="__sin"' + (st.ncliente === '__sin' ? ' selected' : '') + '>Sin cliente</option>' +
       clavesBit().map(function (c) { return '<option value="' + esc(c.k) + '"' + (st.ncliente === c.k ? ' selected' : '') + '>' + esc(c.n) + '</option>'; }).join('') + '</select></div></div>' +
       (carga || (filas ? '<div class="card list">' + filas + '</div>' : '<div class="card empty">' + (NOTAS.length ? 'No hay notas con ese filtro.' : 'Aún no hay notas. Crea la primera con «Nueva nota».') + '</div>')) + '</div>';
@@ -783,7 +804,7 @@
     nEdit = n || null;
     $('#nt').textContent = n ? 'Editar nota' : 'Nueva nota';
     $('#n-titulo').value = n ? sinApostrofo(n.titulo) : ''; $('#n-texto').value = n ? sinApostrofo(n.texto) : '';
-    $('#n-etq').innerHTML = '<option value="">Sin etiqueta</option>' + ETQ.map(function (e) { return '<option value="' + e + '">' + e.charAt(0).toUpperCase() + e.slice(1) + '</option>'; }).join('');
+    $('#n-etq').innerHTML = '<option value="">Sin etiqueta</option>' + ETQ_NOTA.map(function (e) { return '<option value="' + e + '">' + e.charAt(0).toUpperCase() + e.slice(1) + '</option>'; }).join('');
     $('#n-etq').value = n ? (n.etiqueta || '') : '';
     $('#n-cli').innerHTML = '<option value="">Sin cliente (solo en el portal)</option>' + clavesBit().map(function (c) { return '<option value="' + esc(c.k) + '">' + esc(c.n) + '</option>'; }).join('');
     $('#n-cli').value = n ? (n.cliente || '') : (cli || '');
@@ -928,6 +949,7 @@
     document.querySelectorAll('[data-etq]').forEach(function (b) { b.onclick = function () { st.netq = b.dataset.etq; render(true); }; });
     var ncl = $('#ncl'); if (ncl) ncl.onchange = function (e) { st.ncliente = e.target.value; render(true); };
     document.querySelectorAll('[data-nid]').forEach(function (b) { b.onclick = function () { var n = (NOTAS || []).filter(function (x) { return x.id === b.dataset.nid; })[0]; if (n) abrirNota(n); }; });
+    document.querySelectorAll('[data-tvista]').forEach(function (b) { b.onclick = function () { st.tvista = b.dataset.tvista; lsSet('mp_tvista', st.tvista); render(true); }; });
     var tcl = $('#tcl'); if (tcl) tcl.onchange = function (e) { st.tcliente = e.target.value; render(true); };
   }
   function render(mismo) {
@@ -1092,7 +1114,7 @@
     };
     CFG = lsJson('mp_cfg');
     if (!CFG || !CFG.u || !CFG.k) { mostrar('login'); return; }
-    D = visibles(lsJson('mp_cache')); TRAB = lsJson('mp_t'); FIN = lsJson('mp_f'); NOTAS = lsJson('mp_n');
+    D = visibles(lsJson('mp_cache')); TRAB = lsJson('mp_t'); FIN = lsJson('mp_f'); st.tvista = lsGet('mp_tvista') === 'lista' ? 'lista' : 'clientes'; NOTAS = lsJson('mp_n');
     if (D) { mostrar('app'); render(false); }
     cargar(!!D);
   }
