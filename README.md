@@ -35,3 +35,10 @@ Las hojas `Clientes` y `Enlaces` del Sheet del agente mandan: se editan ahí. La
 
 El panel crea y cambia tareas por `POST ?portal=tarea` (token en el cuerpo): completar, fecha, prioridad, cliente, título, notas, en curso y cancelar. Las escribe el Apps Script con las mismas funciones que usa el bot. La pantalla cambia primero y se revierte si el script responde con error; cada cambio ofrece «Deshacer».
 
+
+## Móvil (6-nov-2026)
+
+- **Menú lateral:** botón ☰ en la barra superior (solo en pantallas ≤760 px) abre un panel con las 6 secciones. La barra inferior queda con los accesos directos Hoy, Trabajo, Tareas y Finanzas; Notas y Enlaces solo están en el menú.
+- **Scroll:** con el cajón de un cliente, el menú o la bitácora abiertos, el fondo queda bloqueado (`body.noscroll`) y cada panel tiene `overscroll-behavior: contain`. Antes el cajón rebotaba y se pegaba al llegar al final.
+- **Final de páginas:** se deja espacio inferior para la barra y la zona segura del iPhone; la barra se oculta mientras hay cajón o menú abierto.
+- Si el celular no toma los cambios, subir la versión `V` en `sw.js` (hoy `mp-v17`).
