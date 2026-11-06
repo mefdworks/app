@@ -9,9 +9,10 @@
   var TRAB = null;       // inversión y por verificar por cliente (de las bitácoras)
   var FIN = null;        // finanzas del mes
   var TRAB_ERR = '', FIN_ERR = '';
+  var NOTAS = null;      // notas libres (hoja Notas)
   var VERIF = null;      // "por verificar" (carga perezosa)
   var BIT = {};          // bitácoras por cliente
-  var st = { vista: 'lista', filtro: 'Todos', q: '', tarea: 'Todas', tcliente: '' };
+  var st = { vista: 'lista', filtro: 'Todos', q: '', tarea: 'Todas', tcliente: '', ncliente: '', netq: 'Todas' };
   var abierto = null;    // cliente abierto en el panel lateral
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -37,6 +38,7 @@
     alert: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
     book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5M9 7h6"/>',
     chart: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
+    note: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
     chev: '<path d="M9 5l7 7-7 7"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', arrow: '<path d="M7 17L17 7M9 7h8v8"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
   };
   function ic(n, c) { return '<svg class="i ' + (c || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + ICONOS[n] + '</svg>'; }
@@ -377,6 +379,34 @@
       ['Todas', 'Vencidas', 'Hoy', 'Semana', 'Sin fecha'].map(function (x) { return '<button class="pill' + (f === x ? ' on' : '') + '" type="button" data-tarea="' + x + '">' + x + '</button>'; }).join('') +
       '<select class="pill" id="tcl" aria-label="Cliente"><option value="">Todos los clientes</option>' + clientesTodos().map(function (c) { return '<option value="' + esc(c.cliente) + '"' + (st.tcliente === c.cliente ? ' selected' : '') + '>' + esc(c.nombre) + '</option>'; }).join('') + '</select></div></div>' +
       listaTareas(ts, 'No hay tareas con ese filtro.') + '</div>';
+  }
+
+  // Notas
+  var ETQ = ['reunión', 'idea', 'pendiente', 'general'];
+  function clavesBit() { return clientesTodos().map(function (c) { return { k: c.bitacora || c.cliente, n: c.nombre }; }); }
+  function nombreBit(k) { var f = clavesBit().filter(function (x) { return x.k === k; })[0]; return f ? f.n : k; }
+  function sinApostrofo(x) { return String(x || '').replace(/^'(?=[=+])/, ''); }
+  function vNotas() {
+    var q = norm(st.q), lista = (NOTAS || []).filter(function (n) {
+      if (st.ncliente === '__sin' ? n.cliente : (st.ncliente && n.cliente !== st.ncliente)) return false;
+      if (st.netq !== 'Todas' && n.etiqueta !== st.netq) return false;
+      return !q || norm(n.titulo + ' ' + n.texto).indexOf(q) >= 0;
+    });
+    var filas = lista.map(function (n) {
+      var snip = sinApostrofo(n.texto).replace(/\s+/g, ' ').trim().slice(0, 160);
+      return '<button class="row nt" type="button" data-nid="' + esc(n.id) + '"><span class="grow"><b>' + esc(sinApostrofo(n.titulo)) + '</b>' +
+        (snip ? '<span class="nsn">' + esc(snip) + '</span>' : '') + '</span>' +
+        (n.etiqueta ? '<span class="chip">' + esc(n.etiqueta) + '</span>' : '') +
+        (n.cliente ? '<span class="chip' + (n.bitacora === 'si' ? ' good' : '') + '">' + esc(nombreBit(n.cliente)) + (n.bitacora === 'si' ? ' · en bitácora' : '') + '</span>' : '') +
+        '<span class="chip">' + esc(diaMes(n.actualizada || n.creada)) + '</span></button>';
+    }).join('');
+    var carga = NOTAS === null ? '<div class="card empty">Cargando notas…</div>' : null;
+    return '<div class="view"><div class="head"><div><h1 class="t">Notas</h1><p class="sub">' + (NOTAS ? lista.length + ' de ' + NOTAS.length : 'Reuniones, ideas y pendientes') + '</p></div><button class="btn sm" type="button" data-act="nnueva">+ Nueva nota</button></div>' +
+      '<div class="tools"><label class="search">' + ic('search') + '<input id="q" type="search" placeholder="Buscar en notas" value="' + esc(st.q) + '" autocomplete="off"></label><div class="pills">' +
+      ['Todas'].concat(ETQ).map(function (x) { return '<button class="pill' + (st.netq === x ? ' on' : '') + '" type="button" data-etq="' + x + '">' + x + '</button>'; }).join('') +
+      '<select class="pill" id="ncl" aria-label="Cliente"><option value="">Todos los clientes</option><option value="__sin"' + (st.ncliente === '__sin' ? ' selected' : '') + '>Sin cliente</option>' +
+      clavesBit().map(function (c) { return '<option value="' + esc(c.k) + '"' + (st.ncliente === c.k ? ' selected' : '') + '>' + esc(c.n) + '</option>'; }).join('') + '</select></div></div>' +
+      (carga || (filas ? '<div class="card list">' + filas + '</div>' : '<div class="card empty">' + (NOTAS.length ? 'No hay notas con ese filtro.' : 'Aún no hay notas. Crea la primera con «Nueva nota».') + '</div>')) + '</div>';
   }
 
   // Finanzas
@@ -733,6 +763,67 @@
       .catch(function (e) { D.tareas.splice(D.tareas.indexOf(tmp), 1); guardarCache(); refrescaTareas(); avisar('No pude crear la tarea: ' + e.message); });
   }
 
+  // Formulario de nota (nueva o editar). Se guarda en el Sheet por el Apps Script; si la nota tiene cliente y se marca, cae en su bitácora.
+  var nEdit = null;
+  function escribirNota(accion, datos) {
+    var cuerpo = Object.assign({ token: CFG.k, accion: accion }, datos);
+    return fetch(CFG.u + '?portal=nota', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(cuerpo) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.error) throw new Error(j.error); return j; });
+  }
+  function guardarNotas() { lsSet('mp_n', JSON.stringify(NOTAS)); }
+  function pintaEnviar() {
+    var cli = $('#n-cli').value, enviada = nEdit && nEdit.bitacora === 'si', fila = $('#n-envf');
+    fila.hidden = !cli;
+    $('#n-env').disabled = !!enviada;
+    if (enviada) { $('#n-env').checked = true; $('#n-envt').textContent = 'Ya está en la bitácora. Si la editas aquí, la bitácora conserva la versión original.'; }
+    else $('#n-envt').textContent = 'Mandar también a la bitácora de ' + nombreBit(cli);
+  }
+  function abrirNota(n, cli) {
+    nEdit = n || null;
+    $('#nt').textContent = n ? 'Editar nota' : 'Nueva nota';
+    $('#n-titulo').value = n ? sinApostrofo(n.titulo) : ''; $('#n-texto').value = n ? sinApostrofo(n.texto) : '';
+    $('#n-etq').innerHTML = '<option value="">Sin etiqueta</option>' + ETQ.map(function (e) { return '<option value="' + e + '">' + e.charAt(0).toUpperCase() + e.slice(1) + '</option>'; }).join('');
+    $('#n-etq').value = n ? (n.etiqueta || '') : '';
+    $('#n-cli').innerHTML = '<option value="">Sin cliente (solo en el portal)</option>' + clavesBit().map(function (c) { return '<option value="' + esc(c.k) + '">' + esc(c.n) + '</option>'; }).join('');
+    $('#n-cli').value = n ? (n.cliente || '') : (cli || '');
+    $('#n-env').checked = !n;  // una nota nueva con cliente va a su bitácora salvo que se desmarque
+    $('#n-arch').hidden = !n;
+    pintaEnviar();
+    $('#nmodal').classList.add('on'); setTimeout(function () { $('#n-titulo').focus(); }, 30);
+  }
+  function cerrarNota() { $('#nmodal').classList.remove('on'); nEdit = null; }
+  function enviarNota(e) {
+    e.preventDefault();
+    var d = { titulo: $('#n-titulo').value.trim(), texto: $('#n-texto').value, etiqueta: $('#n-etq').value, cliente: $('#n-cli').value };
+    if (!d.titulo) return;
+    var enviar = !!d.cliente && $('#n-env').checked && !(nEdit && nEdit.bitacora === 'si');
+    var btn = $('#n-ok'); btn.disabled = true; btn.textContent = 'Guardando…';
+    var p;
+    if (!nEdit) p = escribirNota('crear', Object.assign({ enviar: enviar }, d));
+    else {
+      var campos = {}; Object.keys(d).forEach(function (k) { if (d[k] !== sinApostrofo(nEdit[k] || '')) campos[k] = d[k]; });
+      if (!Object.keys(campos).length && !enviar) { btn.disabled = false; btn.textContent = 'Guardar'; cerrarNota(); return; }
+      p = escribirNota('actualizar', { id: nEdit.id, campos: campos, enviar: enviar });
+    }
+    p.then(function (j) {
+      var i = (NOTAS || []).map(function (x) { return x.id; }).indexOf(j.nota.id);
+      NOTAS = NOTAS || [];
+      if (i >= 0) NOTAS[i] = j.nota; else NOTAS.unshift(j.nota);
+      NOTAS.sort(function (a, b) { return a.actualizada < b.actualizada ? 1 : a.actualizada > b.actualizada ? -1 : 0; });
+      guardarNotas(); cerrarNota(); render(true);
+      avisar(j.nota.bitacora === 'si' && enviar ? 'Nota guardada y enviada a la bitácora (llega en unos 10 min)' : 'Nota guardada');
+    }).catch(function (er) { avisar('No pude guardar la nota: ' + er.message); })
+      .then(function () { btn.disabled = false; btn.textContent = 'Guardar'; });
+  }
+  function archivarNota() {
+    if (!nEdit) return;
+    var id = nEdit.id;
+    escribirNota('archivar', { id: id }).then(function () {
+      NOTAS = NOTAS.filter(function (x) { return x.id !== id; }); guardarNotas(); cerrarNota(); render(true); avisar('Nota archivada');
+    }).catch(function (er) { avisar('No pude archivar: ' + er.message); });
+  }
+
   // Menús flotantes
   function cerrarPop() { var p = $('#pop'); if (p) p.remove(); }
   function popMenu(ancla, items) {
@@ -814,7 +905,7 @@
   }
 
   // ── Router ──
-  var TABS = [['hoy', 'Hoy', 'home'], ['trabajo', 'Trabajo', 'brief'], ['tareas', 'Tareas', 'check'], ['fin', 'Finanzas', 'wallet'], ['enlaces', 'Enlaces', 'link']];
+  var TABS = [['hoy', 'Hoy', 'home'], ['trabajo', 'Trabajo', 'brief'], ['tareas', 'Tareas', 'check'], ['notas', 'Notas', 'note'], ['fin', 'Finanzas', 'wallet'], ['enlaces', 'Enlaces', 'link']];
   function ruta() {
     var p = (location.hash || '#hoy').slice(1).split('/');
     return { v: p[0] || 'hoy', a: p[1] || '' };
@@ -834,14 +925,17 @@
     document.querySelectorAll('[data-f]').forEach(function (b) { b.onclick = function () { st.filtro = b.dataset.f; render(true); }; });
     document.querySelectorAll('[data-vista]').forEach(function (b) { b.onclick = function () { st.vista = b.dataset.vista; lsSet('mp_vista', st.vista); render(true); }; });
     document.querySelectorAll('[data-tarea]').forEach(function (b) { b.onclick = function () { st.tarea = b.dataset.tarea; render(true); }; });
+    document.querySelectorAll('[data-etq]').forEach(function (b) { b.onclick = function () { st.netq = b.dataset.etq; render(true); }; });
+    var ncl = $('#ncl'); if (ncl) ncl.onchange = function (e) { st.ncliente = e.target.value; render(true); };
+    document.querySelectorAll('[data-nid]').forEach(function (b) { b.onclick = function () { var n = (NOTAS || []).filter(function (x) { return x.id === b.dataset.nid; })[0]; if (n) abrirNota(n); }; });
     var tcl = $('#tcl'); if (tcl) tcl.onchange = function (e) { st.tcliente = e.target.value; render(true); };
   }
   function render(mismo) {
     if (!D) return;
     var r = ruta(), v = r.v === 'c' ? 'trabajo' : r.v, html;
-    if (!mismo && v !== 'trabajo' && v !== 'enlaces') st.q = '';
+    if (!mismo && v !== 'trabajo' && v !== 'enlaces' && v !== 'notas') st.q = '';
     if (!mismo && r.v === 'tareas') { st.tarea = { venc: 'Vencidas', hoy: 'Hoy', sem: 'Semana' }[r.a] || 'Todas'; st.tcliente = ''; }
-    if (v === 'trabajo') html = vTrabajo(); else if (v === 'tareas') html = vTareas(); else if (v === 'fin') html = vFin(); else if (v === 'enlaces') html = vEnlaces(); else { v = 'hoy'; html = vHoy(); }
+    if (v === 'trabajo') html = vTrabajo(); else if (v === 'tareas') html = vTareas(); else if (v === 'notas') html = vNotas(); else if (v === 'fin') html = vFin(); else if (v === 'enlaces') html = vEnlaces(); else { v = 'hoy'; html = vHoy(); }
     var main = $('#view'), y = main.scrollTop;
     main.innerHTML = html;
     if (mismo) { var vw = main.querySelector('.view'); if (vw) vw.style.animation = 'none'; main.scrollTop = y; } else { main.scrollTop = 0; window.scrollTo(0, 0); }
@@ -856,12 +950,14 @@
   function girar(on) { $('#refresh').classList.toggle('spin', on); }
   function refresca() {
     var v = ruta().v;
-    if (D && (v === 'hoy' || v === 'trabajo' || v === 'fin' || v === 'c')) render(true);
+    if (D && (v === 'hoy' || v === 'trabajo' || v === 'fin' || v === 'c' || (v === 'notas' && !$('#nmodal').classList.contains('on')))) render(true);
     if (D && abierto) abrir(abierto);
   }
   function cargarExtras() {
     api('trabajo').then(function (j) { TRAB = j; TRAB_ERR = ''; lsSet('mp_t', JSON.stringify(j)); refresca(); })
       .catch(function (e) { if (!e.auth) { TRAB_ERR = e.message; refresca(); } });
+    api('notas').then(function (j) { NOTAS = j.notas; guardarNotas(); refresca(); })
+      .catch(function (e) { if (!e.auth && NOTAS === null) NOTAS = []; });
     api('finanzas').then(function (j) { FIN = j; FIN_ERR = ''; lsSet('mp_f', JSON.stringify(j)); refresca(); })
       .catch(function (e) { if (!e.auth) { FIN_ERR = e.message; refresca(); } });
   }
@@ -873,7 +969,7 @@
       D = visibles(j); lsSet('mp_cache', JSON.stringify(j));
       mostrar('app'); render(!!silencioso); cargarExtras();
     }).catch(function (e) {
-      if (e.auth) { lsDel('mp_cfg'); lsDel('mp_cache'); lsDel('mp_t'); lsDel('mp_f'); CFG = null; D = null; mostrar('login'); var m = $('#login-err'); m.textContent = 'La clave ya no es válida. Abre de nuevo el enlace de instalación.'; m.classList.remove('hide'); return; }
+      if (e.auth) { lsDel('mp_cfg'); lsDel('mp_cache'); lsDel('mp_t'); lsDel('mp_f'); lsDel('mp_n'); CFG = null; D = null; mostrar('login'); var m = $('#login-err'); m.textContent = 'La clave ya no es válida. Abre de nuevo el enlace de instalación.'; m.classList.remove('hide'); return; }
       if (D) { var v = $('#view'); if (!v.querySelector('.banner')) v.insertAdjacentHTML('afterbegin', '<div class="banner">Sin conexión con los datos. Muestro lo último que guardé.</div>'); }
       else { mostrar('login'); var m2 = $('#login-err'); m2.textContent = 'No pude conectar: ' + e.message; m2.classList.remove('hide'); }
     }).then(function () { girar(false); });
@@ -905,7 +1001,7 @@
     lsSet('mp_cfg', JSON.stringify({ u: p.get('u'), k: p.get('k') }));
     return true;
   }
-  function salir() { ['mp_cfg', 'mp_cache', 'mp_t', 'mp_f'].forEach(lsDel); location.hash = ''; location.reload(); }
+  function salir() { ['mp_cfg', 'mp_cache', 'mp_t', 'mp_f', 'mp_n'].forEach(lsDel); location.hash = ''; location.reload(); }
 
   // El panel se actualiza solo: cada 5 minutos con la pestaña a la vista, y al volver a ella si pasaron más de 2.
   // No actualiza mientras se escribe en un campo ni con la bitácora abierta.
@@ -949,6 +1045,8 @@
     $('#pq').oninput = function () { palFiltrar(this.value); };
     $('#scrim').onclick = cerrar;
     $('#mx').onclick = cerrarBitacora;
+    $('#nx').onclick = cerrarNota; $('#nc').onclick = cerrarNota; $('#nform').onsubmit = enviarNota; $('#n-arch').onclick = archivarNota; $('#n-cli').onchange = pintaEnviar;
+    $('#nmodal').onclick = function (e) { if (e.target === this) cerrarNota(); };
     $('#tx').onclick = cerrarForm; $('#tc').onclick = cerrarForm; $('#tform').onsubmit = enviarForm;
     $('#tmodal').onclick = function (e) { if (e.target === this) cerrarForm(); };
     // Un solo manejador para fichas de cliente y acciones de tareas (sirve también para lo que se dibuja después, como el panel lateral).
@@ -960,6 +1058,7 @@
       if (a.dataset.open) { abrir(a.dataset.open); return; }
       var act = a.dataset.act, fila = a.closest('.tk'), id = fila ? fila.dataset.id : '';
       if (act === 'nueva') return abrirForm(null, a.dataset.cliente || '');
+      if (act === 'nnueva') return abrirNota(null, st.ncliente && st.ncliente !== '__sin' ? st.ncliente : '');
       if (act === 'cat') { var cd = a.parentNode.querySelector('.cd'); cd.hidden = !cd.hidden; a.setAttribute('aria-expanded', String(!cd.hidden)); return; }
       if (act === 'mes') return irMesFin(+a.dataset.d);
       if (act === 'masmov') { stF.n += 20; return pintarMovs(); }
@@ -971,7 +1070,7 @@
     $('#modal').onclick = function (e) { if (e.target === this) cerrarBitacora(); };
     document.addEventListener('keydown', function (e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && D) { e.preventDefault(); palAbrir(!$('#pal').classList.contains('on')); return; }
-      if (e.key === 'Escape') { if ($('#pal').classList.contains('on')) palAbrir(false); else if ($('#pop')) cerrarPop(); else if ($('#tmodal').classList.contains('on')) cerrarForm(); else if (modalAbierto) cerrarBitacora(); else if (abierto) cerrar(); return; }
+      if (e.key === 'Escape') { if ($('#pal').classList.contains('on')) palAbrir(false); else if ($('#pop')) cerrarPop(); else if ($('#nmodal').classList.contains('on')) cerrarNota(); else if ($('#tmodal').classList.contains('on')) cerrarForm(); else if (modalAbierto) cerrarBitacora(); else if (abierto) cerrar(); return; }
       if (!$('#pal').classList.contains('on')) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); palSel = Math.min(palItems.length - 1, palSel + 1); palRender(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = Math.max(0, palSel - 1); palRender(); }
@@ -993,7 +1092,7 @@
     };
     CFG = lsJson('mp_cfg');
     if (!CFG || !CFG.u || !CFG.k) { mostrar('login'); return; }
-    D = visibles(lsJson('mp_cache')); TRAB = lsJson('mp_t'); FIN = lsJson('mp_f');
+    D = visibles(lsJson('mp_cache')); TRAB = lsJson('mp_t'); FIN = lsJson('mp_f'); NOTAS = lsJson('mp_n');
     if (D) { mostrar('app'); render(false); }
     cargar(!!D);
   }

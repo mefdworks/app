@@ -75,6 +75,17 @@
   </div>
   <footer class="tfoot"><button class="pill" id="tc" type="button">Cancelar</button><button class="btn sm" type="submit">Guardar</button></footer>
 </form></div>
+<div class="modal" id="nmodal"><form class="mbox tbox" id="nform" autocomplete="off">
+  <header class="mh"><h3 id="nt">Nueva nota</h3><button class="x" id="nx" type="button" aria-label="Cerrar">&times;</button></header>
+  <div class="tfields">
+    <div><label for="n-titulo">Título</label><input class="fi" id="n-titulo" type="text" maxlength="200" placeholder="Ej. Reunión Compensar, ajustes de pauta" required></div>
+    <div><label for="n-texto">Nota</label><textarea class="fi" id="n-texto" rows="9" maxlength="20000" placeholder="Escribe lo que quieras. En la bitácora se lee como markdown (listas con -, **negrita**)"></textarea></div>
+    <div class="trow"><div><label for="n-etq">Etiqueta</label><select class="fi" id="n-etq"></select></div>
+    <div><label for="n-cli">Cliente</label><select class="fi" id="n-cli"></select></div></div>
+    <label class="ck" id="n-envf" hidden><input type="checkbox" id="n-env"> <span id="n-envt"></span></label>
+  </div>
+  <footer class="tfoot"><button class="pill" id="n-arch" type="button" hidden>Archivar</button><span class="grow"></span><button class="pill" id="nc" type="button">Cancelar</button><button class="btn sm" id="n-ok" type="submit">Guardar</button></footer>
+</form></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div class="pal" id="pal"><div class="palbox"><div class="palin"><span id="pal-i"></span><input id="pq" type="search" placeholder="Cliente, plataforma, portal…" autocomplete="off" aria-label="Buscar"></div><div id="plist"></div></div></div>
