@@ -248,14 +248,26 @@ details.vf[open] summary::after{content:"–"}
 details.vf .md{padding:0 14px 14px}
 
 .mnav{display:none}
+.mbtn,.mscrim{display:none}
 @media (max-width:860px){
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   .grid2,.grid2.eq{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:760px){
   body{background-attachment:scroll}
-  .win{grid-template-columns:minmax(0,1fr);height:auto;min-height:0;overflow:visible;background:transparent;margin-bottom:84px}
-  .side{display:none}
+  .win{grid-template-columns:minmax(0,1fr);height:auto;min-height:0;overflow:visible;background:transparent;margin-bottom:calc(96px + var(--safe-b))}
+  .main{padding-bottom:calc(40px + var(--safe-b))}
+  .side{position:fixed;top:0;left:0;bottom:0;width:min(280px,82vw);z-index:50;overflow-y:auto;overscroll-behavior:contain;padding:calc(18px + var(--safe-t)) 12px calc(18px + var(--safe-b));box-shadow:0 0 40px rgba(26,26,46,.18);transform:translateX(-105%);transition:transform .3s cubic-bezier(.2,.8,.2,1);visibility:hidden}
+  .side .nav{padding:12px 12px;font-size:14.5px;border-radius:12px}
+  .menu-open .side{transform:none;visibility:visible}
+  .mscrim{display:block;position:fixed;inset:0;background:rgba(26,26,46,.38);opacity:0;pointer-events:none;transition:opacity .25s;z-index:45}
+  .menu-open .mscrim{opacity:1;pointer-events:auto}
+  .mbtn{display:grid;margin-left:0;flex:none}
+  .dopen .mnav,.menu-open .mnav{opacity:0;pointer-events:none}
+  .drawer{overscroll-behavior:contain}
+  .db{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:calc(40px + var(--safe-b))}
+  .mtext,.mbody{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .mtext{padding-bottom:calc(48px + var(--safe-b))}
   .col{background:transparent}
   .main{overflow:visible;padding:16px max(16px,env(safe-area-inset-left,0px)) 30px max(16px,env(safe-area-inset-right,0px))}
   .topbar{padding:10px 16px;position:sticky;top:var(--safe-t);background:rgba(255,255,255,.9);border-bottom:1px solid var(--line);z-index:12}

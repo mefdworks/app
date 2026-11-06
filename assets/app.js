@@ -39,6 +39,7 @@
     book: '<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5M9 7h6"/>',
     chart: '<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
     note: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/>',
+    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
     chev: '<path d="M9 5l7 7-7 7"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>', arrow: '<path d="M7 17L17 7M9 7h8v8"/>', cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
   };
@@ -664,7 +665,7 @@
       '<div class="dsec"><h2 class="s">Bitácora</h2><button class="card btnbit" type="button" id="dbit">' + ic('book') + '<span><b>Leer la bitácora de ' + esc(c.nombre) + '</b><small>Se abre en una ventana</small></span>' + ic('arrow', 'chev') + '</button></div>' +
       (resto.length ? '<div class="dsec"><h2 class="s">Asociado · ' + resto.length + '</h2><div class="bals">' + resto.map(tile).join('') + '</div></div>' : '') +
       '</div>';
-    $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
+    $('#drawer').classList.add('on'); $('#scrim').classList.add('on'); document.body.classList.add('noscroll', 'dopen');
     $('#dx').onclick = cerrar;
     $('#dgo').onclick = function () { cerrar(); location.hash = '#trabajo'; };
     // Por verificar y bitácora: se leen del Drive solo al abrir.
@@ -677,7 +678,7 @@
     $('#dbit').onclick = function () { abrirBitacora(clave); };
   }
   function cerrar() {
-    abierto = null; $('#drawer').classList.remove('on'); $('#scrim').classList.remove('on');
+    abierto = null; $('#drawer').classList.remove('on'); $('#scrim').classList.remove('on'); document.body.classList.remove('dopen'); if (!modalAbierto) document.body.classList.remove('noscroll');
     if (/^#c\//.test(location.hash)) history.replaceState(null, '', location.pathname + '#trabajo');
   }
 
@@ -715,7 +716,7 @@
     api('bitacora', { cliente: key }).then(function (j) { BIT[key] = j; pintar(j); })
       .catch(function (e) { if (modalAbierto) $('#mb').innerHTML = '<div class="empty">No pude leerla: ' + esc(e.message) + '</div>'; });
   }
-  function cerrarBitacora() { modalAbierto = false; $('#modal').classList.remove('on'); document.body.classList.remove('noscroll'); }
+  function cerrarBitacora() { modalAbierto = false; $('#modal').classList.remove('on'); if (!abierto) document.body.classList.remove('noscroll'); }
 
   // ── Buscador ⌘K ──
   var palSel = 0, palItems = [];
@@ -925,6 +926,17 @@
     if (Object.keys(campos).length) cambiar(t.id, campos, 'Tarea actualizada');
   }
 
+  // ── Menú lateral (móvil) ──
+  function menuLateral(abrir) {
+    document.body.classList.toggle('menu-open', abrir);
+    document.body.classList.toggle('noscroll', abrir || !!abierto || modalAbierto);
+    var b = $('#mbtn'); if (b) b.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  }
+  $('#mbtn').innerHTML = ic('menu');
+  $('#mbtn').onclick = function () { menuLateral(!document.body.classList.contains('menu-open')); };
+  $('#mscrim').onclick = function () { menuLateral(false); };
+  $('#navs').addEventListener('click', function (e) { if (e.target.closest('a')) menuLateral(false); });
+
   // ── Router ──
   var TABS = [['hoy', 'Hoy', 'home'], ['trabajo', 'Trabajo', 'brief'], ['tareas', 'Tareas', 'check'], ['notas', 'Notas', 'note'], ['fin', 'Finanzas', 'wallet'], ['enlaces', 'Enlaces', 'link']];
   function ruta() {
@@ -936,7 +948,7 @@
     $('#navs').innerHTML = TABS.map(function (t) {
       return '<a class="nav' + (activa === t[0] ? ' on' : '') + '" href="#' + t[0] + '">' + ic(t[2]) + t[1] + (t[0] === 'hoy' && venc ? '<span class="bd">' + venc + '</span>' : '') + '</a>';
     }).join('');
-    $('#tabs').innerHTML = TABS.map(function (t) {
+    $('#tabs').innerHTML = TABS.filter(function (t) { return t[0] !== 'notas' && t[0] !== 'enlaces'; }).map(function (t) {
       return '<a href="#' + t[0] + '" class="' + (activa === t[0] ? 'on' : '') + '">' + ic(t[2]) + t[1] + (t[0] === 'hoy' && venc ? '<span class="badge">' + venc + '</span>' : '') + '</a>';
     }).join('');
   }
@@ -1092,7 +1104,7 @@
     $('#modal').onclick = function (e) { if (e.target === this) cerrarBitacora(); };
     document.addEventListener('keydown', function (e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && D) { e.preventDefault(); palAbrir(!$('#pal').classList.contains('on')); return; }
-      if (e.key === 'Escape') { if ($('#pal').classList.contains('on')) palAbrir(false); else if ($('#pop')) cerrarPop(); else if ($('#nmodal').classList.contains('on')) cerrarNota(); else if ($('#tmodal').classList.contains('on')) cerrarForm(); else if (modalAbierto) cerrarBitacora(); else if (abierto) cerrar(); return; }
+      if (e.key === 'Escape') { if (document.body.classList.contains('menu-open')) { menuLateral(false); return; } if ($('#pal').classList.contains('on')) palAbrir(false); else if ($('#pop')) cerrarPop(); else if ($('#nmodal').classList.contains('on')) cerrarNota(); else if ($('#tmodal').classList.contains('on')) cerrarForm(); else if (modalAbierto) cerrarBitacora(); else if (abierto) cerrar(); return; }
       if (!$('#pal').classList.contains('on')) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); palSel = Math.min(palItems.length - 1, palSel + 1); palRender(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = Math.max(0, palSel - 1); palRender(); }

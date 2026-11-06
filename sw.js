@@ -1,5 +1,5 @@
 // Solo guarda la carcasa de la app. Los datos (Apps Script) nunca pasan por el caché del service worker.
-const V = 'mp-v16';
+const V = 'mp-v17';
 const SHELL = ['./', 'index.html', 'assets/portal.css', 'assets/app.js', 'assets/logo-me.png', 'assets/logo-michael-espinosa.png', 'assets/icons/favicon-32.png', 'assets/icons/icon-192.png', 'assets/foto-perfil.jpg', 'assets/logos/adcom.png', 'assets/logos/me.png'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(V).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); })); });
 self.addEventListener('activate', function (e) {
