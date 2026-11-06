@@ -275,7 +275,7 @@
     var favs = D.enlaces.filter(function (l) { return norm(l.favorito) === 'si'; }).slice(0, 8);
     var clientesVenc = I.filter(function (x) { return x.venc; }).length;
     var mesN = FIN ? MESL[+FIN.mes.slice(5, 7) - 1] : '';
-    var finKpi = FIN ? '<a class="kpi" href="#fin"><small>Gastado en ' + mesN + '</small><b>' + M(FIN.gasto) + '</b><div class="d">cierras en ~' + M(proyeccion()) + '</div></a>'
+    var finKpi = FIN ? '<a class="kpi" href="#fin"><small>Gastado en ' + mesN + '</small><b>' + M(FIN.gasto) + '</b><div class="d">cierras en ~' + M(proyeccion(FIN)) + '</div></a>'
       : '<a class="kpi" href="#fin"><small>Gastos del mes</small><b>—</b><div class="d">' + (FIN_ERR ? 'sin datos todavía' : 'cargando…') + '</div></a>';
     return '<div class="view"><div class="head"><div><h1 class="t">' + saludo() + ', <em>Michael</em></h1><p class="sub">' + fechaLarga() + ' · ' + ag.length + ' reunion' + (ag.length === 1 ? '' : 'es') + ' hoy</p></div><button class="btn sm" type="button" data-act="nueva">+ Nueva tarea</button></div>' +
       '<div class="kpis"><a class="kpi late" href="#tareas/venc"><small>Tareas vencidas</small><b>' + venc.length + '</b><div class="d">en ' + clientesVenc + ' cliente' + (clientesVenc === 1 ? '' : 's') + '</div></a>' +
@@ -295,11 +295,25 @@
       (favs.length ? sec('Favoritos', '<a href="#enlaces">Todos los enlaces</a>') + '<div class="bals">' + favs.map(tile).join('') + '</div>' : '') +
       '<div class="foot">Actualizado ' + esc((D.actualizado || '').slice(11, 16)) + '</div></div>';
   }
+  // Resumen de finanzas para Hoy: gasto del mes, categorías principales, ingresos y balance, próximos pagos y últimos movimientos.
   function miniFin() {
     if (!FIN) return '<div class="card empty">' + (FIN_ERR ? esc(finMensaje()) : 'Cargando finanzas…') + '</div>';
-    var f = finCalc(), chip = f.antAlDia > 0 ? '<span class="chip ' + (f.vs <= 0 ? 'good' : 'warn') + '" style="vertical-align:middle">' + (f.vs > 0 ? '+' : '') + f.vs + '%</span>' : '';
-    return '<div class="card mini"><small style="color:var(--ink2)">Gasto de ' + MESL[+FIN.mes.slice(5, 7) - 1] + ' contra el mes anterior al mismo día</small><div class="big num" style="margin:2px 0 10px">' + M(FIN.gasto) + ' ' + chip + '</div>' +
-      '<div class="bar"><i class="acc" style="width:' + Math.min(100, f.pctAnt) + '%"></i></div><small style="color:var(--ink3);display:block;margin-top:6px">' + f.pctAnt + '% de lo que gastaste en todo ' + MESL[+FIN.mes_anterior.slice(5, 7) - 1] + '</small></div>';
+    var f = finCalc(FIN), bal = FIN.ingresos - FIN.gasto, cats = FIN.categorias.slice(0, 3), maxC = cats.length ? cats[0][1] : 1;
+    var chip = f.antAlDia > 0 ? '<span class="chip ' + (f.vs <= 0 ? 'good' : 'warn') + '" style="vertical-align:middle">' + (f.vs > 0 ? '+' : '') + f.vs + '%</span>' : '';
+    var pagos = FIN.pagos.slice(0, 4).map(function (p) {
+      var n = dias(p.fecha);
+      return '<div class="pay"><div class="dt"><b>' + parse(p.fecha).getDate() + '</b><small>' + MES[parse(p.fecha).getMonth()] + '</small></div><div class="t" style="flex:1;min-width:0"><b>' + esc(p.nombre) + '</b><div style="color:var(--ink3);font-size:11.5px">' + esc(p.tipo) + '</div></div>' +
+        (n <= 7 ? '<span class="chip ' + (n <= 0 ? 'crit' : 'warn') + '">' + (n < 0 ? 'Vencido' : n === 0 ? 'Hoy' : 'En ' + n + ' d') + '</span>' : '') + '<b class="num" style="min-width:80px;text-align:right">' + COP(p.monto) + '</b></div>';
+    }).join('');
+    var movs = FIN.movimientos.slice(0, 4).map(function (m) {
+      return '<div class="mv sm"><small>' + diaMes(m.fecha) + '</small><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(m.desc) + '</span><span class="amt ' + (m.monto > 0 ? 'in' : '') + '">' + (m.monto > 0 ? '+' : '−') + COP(Math.abs(m.monto)) + '</span></div>';
+    }).join('');
+    return '<div class="card mini"><small style="color:var(--ink2)">Gasto de ' + nombreMes(FIN.mes) + ' contra ' + nombreMes(FIN.mes_anterior) + ' al mismo día</small><div class="big num" style="margin:2px 0 8px">' + M(FIN.gasto) + ' ' + chip + '</div>' +
+      '<div class="bar"><i class="acc" style="width:' + Math.min(100, f.pctAnt) + '%"></i></div><small style="color:var(--ink3);display:block;margin:6px 0 14px">' + f.pctAnt + '% de lo que gastaste en todo ' + nombreMes(FIN.mes_anterior) + ' · cierras en ~' + M(proyeccion(FIN)) + '</small>' +
+      cats.map(function (c) { return '<div class="cat static"><span>' + esc(c[0]) + '</span><div class="bar"><i style="width:' + Math.round(c[1] / maxC * 100) + '%"></i></div><span class="num">' + COP(c[1]) + '</span></div>'; }).join('') +
+      '<div class="two"><div><small>Ingresos</small><b class="num" style="color:var(--good)">' + M(FIN.ingresos) + '</b></div><div><small>Balance del mes</small><b class="num" style="color:' + (bal < 0 ? 'var(--crit)' : 'var(--ink)') + '">' + (bal >= 0 ? '+' : '−') + M(Math.abs(bal)) + '</b></div></div></div>' +
+      (pagos ? sec('Próximos pagos', '<a href="#fin">Ver todos</a>') + '<div class="card list">' + pagos + '</div>' : '') +
+      (movs ? sec('Últimos movimientos', '<a href="#fin">Ver todos</a>') + '<div class="card list">' + movs + '</div>' : '');
   }
   function finMensaje() { return /desconocida/.test(FIN_ERR) ? 'Falta subir y redesplegar el script del agente (acción «finanzas»).' : 'No pude leer las finanzas: ' + FIN_ERR; }
 
@@ -366,81 +380,195 @@
   }
 
   // Finanzas
+  var FINS = {};         // otros meses ya leídos, por yyyy-MM
+  var finSel = '';       // '' = el mes actual
+  var FV = null;         // datos del mes que se está viendo
+  function nuevoFiltro() { return { rango: 'mes', cat: '', tipo: 'todos', q: '', desde: '', hasta: '', n: 8 }; }
+  var stF = nuevoFiltro();
+  function finVista() { return finSel ? FINS[finSel] : FIN; }
+  function nombreMes(ym) { return MESL[+ym.slice(5, 7) - 1]; }
+  function mesCap(ym) { var n = nombreMes(ym); return n.charAt(0).toUpperCase() + n.slice(1) + ' ' + ym.slice(0, 4); }
+  function mesMas(ym, n) { var d = new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + n, 1); return d.getFullYear() + '-' + pad2(d.getMonth() + 1); }
+  function isoRestar(iso, n) { var d = parse(iso); d.setDate(d.getDate() - n); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function cum(a) { var s = 0; return a.map(function (x) { return s += x; }); }
-  function proyeccion() { return FIN.dia ? FIN.gasto / FIN.dia * FIN.dias_mes : FIN.gasto; }
-  function finCalc() {
-    var ca = cum(FIN.diario.ant), antAlDia = ca.length ? ca[Math.min(FIN.dia, ca.length) - 1] : 0, antTot = ca.length ? ca[ca.length - 1] : 0;
-    return { ca: ca, cm: cum(FIN.diario.mes).slice(0, FIN.dia), antAlDia: antAlDia, antTot: antTot,
-      vs: antAlDia > 0 ? Math.round((FIN.gasto / antAlDia - 1) * 100) : 0, pctAnt: antTot > 0 ? Math.round(FIN.gasto / antTot * 100) : 0 };
+  // Proyección del cierre: lo gastado más lo que se gastó en el resto del mes anterior (así un pago grande al inicio, como el arriendo,
+  // no se multiplica por los días que faltan). Sin mes anterior con datos, se extiende el ritmo diario.
+  function proyeccion(F) {
+    if (!F.es_actual || !F.dia) return F.gasto;
+    var ca = cum(F.diario.ant), tot = ca.length ? ca[ca.length - 1] : 0, alDia = ca.length ? ca[Math.min(F.dia, ca.length) - 1] : 0;
+    return tot > 0 ? F.gasto + (tot - alDia) : F.gasto / F.dia * F.dias_mes;
+  }
+  function finCalc(F) {
+    var ca = cum(F.diario.ant), antAlDia = ca.length ? ca[Math.min(F.dia, ca.length) - 1] : 0, antTot = ca.length ? ca[ca.length - 1] : 0;
+    return { ca: ca, cm: cum(F.diario.mes).slice(0, F.dia), antAlDia: antAlDia, antTot: antTot,
+      vs: antAlDia > 0 ? Math.round((F.gasto / antAlDia - 1) * 100) : 0, pctAnt: antTot > 0 ? Math.round(F.gasto / antTot * 100) : 0 };
   }
   function tope(max) {
     var raw = max / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / mag, step = (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * mag;
     return { step: step, max: Math.ceil(max / step) * step };
   }
-  function chartFin(f) {
-    // El dibujo se mide con el ancho disponible para que las letras no se agranden en pantallas anchas.
-    var W = Math.max(480, Math.min(1200, ($('#view').clientWidth || 700) - 120)), H = Math.round(Math.max(200, Math.min(300, W * 0.32))), L = 52, R = 14, T = 14, B = 26, N = Math.max(FIN.dias_mes, f.ca.length), proy = proyeccion();
-    var sc = tope(Math.max(f.antTot, proy, FIN.gasto, 1)), max = sc.max;
+  function ejeY(sc, L, W, R, y) {
+    var g = '', v;
+    for (v = 0; v <= sc.max + 1; v += sc.step) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line2)"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" fill="var(--ink3)">' + (v ? M(v).replace('$', '') : '0') + '</text>';
+    return g;
+  }
+  // Tendencia: gasto acumulado del mes contra el mes anterior (con proyección si el mes sigue en curso).
+  function chartFin(F, f) {
+    var W = Math.max(480, Math.min(1200, ($('#view').clientWidth || 700) - 120)), H = Math.round(Math.max(200, Math.min(300, W * 0.32))), L = 52, R = 14, T = 14, B = 26, N = Math.max(F.dias_mes, f.ca.length), proy = proyeccion(F);
+    var sc = tope(Math.max(f.antTot, proy, F.gasto, 1)), max = sc.max;
     var x = function (d) { return L + (d - 1) / (N - 1 || 1) * (W - L - R); }, y = function (v) { return T + (1 - v / max) * (H - T - B); };
     var path = function (a, n) { return a.slice(0, n).map(function (v, i) { return (i ? 'L' : 'M') + x(i + 1).toFixed(1) + ' ' + y(v).toFixed(1); }).join(' '); };
-    var grid = '', v;
-    for (v = 0; v <= max + 1; v += sc.step) grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--line2)"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" fill="var(--ink3)">' + (v ? M(v).replace('$', '').replace(' M', ' M') : '0') + '</text>';
+    var grid = ejeY(sc, L, W, R, y);
     [1, 5, 10, 15, 20, 25, 30].forEach(function (d) { if (d <= N) grid += '<text x="' + x(d) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="var(--ink3)">' + d + '</text>'; });
     var n = f.cm.length, hay = n > 0;
     return '<div class="chart" id="chart" data-w="' + W + '" data-h="' + H + '"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Gasto acumulado del mes contra el mes anterior"><defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="var(--pri)" stop-opacity=".3"/><stop offset="1" stop-color="var(--pri)" stop-opacity="0"/></linearGradient></defs>' + grid +
       '<path d="' + path(f.ca, f.ca.length) + '" fill="none" stroke="var(--ink3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".75"/>' +
       (hay ? '<path d="' + path(f.cm, n) + ' L' + x(n) + ' ' + y(0) + ' L' + x(1) + ' ' + y(0) + ' Z" fill="url(#g1)"/>' +
-        '<path d="M' + x(n) + ' ' + y(FIN.gasto) + ' L' + x(FIN.dias_mes) + ' ' + y(proy) + '" fill="none" stroke="var(--acc)" stroke-width="2" stroke-dasharray="4 5" stroke-linecap="round"/>' +
+        (F.es_actual ? '<path d="M' + x(n) + ' ' + y(F.gasto) + ' L' + x(F.dias_mes) + ' ' + y(proy) + '" fill="none" stroke="var(--acc)" stroke-width="2" stroke-dasharray="4 5" stroke-linecap="round"/>' : '') +
         '<path id="lnN" d="' + path(f.cm, n) + '" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
-        '<circle cx="' + x(n) + '" cy="' + y(FIN.gasto) + '" r="5" fill="var(--acc)" stroke="#fff" stroke-width="2"/>' : '') +
+        '<circle cx="' + x(n) + '" cy="' + y(F.gasto) + '" r="5" fill="var(--acc)" stroke="#fff" stroke-width="2"/>' : '') +
       '<line id="cx" x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" stroke="var(--ink3)" stroke-dasharray="3 3" opacity="0"/><circle id="co" r="4.5" fill="var(--ink3)" stroke="#fff" stroke-width="2" opacity="0"/>' +
       '<rect id="hit" x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - B) + '" fill="transparent"/></svg><div class="tip" id="tip"></div></div>' +
-      '<div class="leg"><span><i style="border-color:var(--acc)"></i>' + MESL[+FIN.mes.slice(5, 7) - 1] + '</span><span><i style="border-color:var(--acc);border-top-style:dashed"></i>Proyección al ritmo actual</span><span><i style="border-color:var(--ink3)"></i>' + MESL[+FIN.mes_anterior.slice(5, 7) - 1] + '</span></div>';
+      '<div class="leg"><span><i style="border-color:var(--acc)"></i>' + nombreMes(F.mes) + '</span>' + (F.es_actual ? '<span><i style="border-color:var(--acc);border-top-style:dashed"></i>Proyección: el resto del mes como ' + nombreMes(F.mes_anterior) + '</span>' : '') + '<span><i style="border-color:var(--ink3)"></i>' + nombreMes(F.mes_anterior) + '</span></div>';
   }
+  // Ingresos contra gastos de los últimos 6 meses (barras agrupadas; el mes que se ve lleva el valor encima).
+  function chartHist(F) {
+    var Hs = F.historico;
+    if (!Hs || !Hs.length) return '';
+    var W = 560, Ht = 240, L = 46, R = 8, T = 22, B = 28, n = Hs.length;
+    var sc = tope(Math.max.apply(null, Hs.map(function (h) { return Math.max(h.gastos, h.ingresos); }).concat([1]))), max = sc.max;
+    var y = function (v) { return T + (1 - v / max) * (Ht - T - B); };
+    var gw = (W - L - R) / n, bw = Math.min(26, gw * 0.3), out = ejeY(sc, L, W, R, y);
+    var barra = function (x, v, color, rotulo) {
+      if (v <= 0) return '';
+      var yy = y(v), r = Math.min(4, (Ht - B - yy) / 2);
+      return '<path d="M' + x + ' ' + (Ht - B) + ' V' + (yy + r) + ' Q' + x + ' ' + yy + ' ' + (x + r) + ' ' + yy + ' H' + (x + bw - r) + ' Q' + (x + bw) + ' ' + yy + ' ' + (x + bw) + ' ' + (yy + r) + ' V' + (Ht - B) + ' Z" fill="' + color + '"><title>' + esc(rotulo + ': ' + COP(v)) + '</title></path>';
+    };
+    Hs.forEach(function (h, i) {
+      var cx = L + gw * i + gw / 2, ult = i === n - 1;
+      out += barra(cx - bw - 1, h.ingresos, 'var(--yel)', mesCap(h.mes) + ' · Ingresos') + barra(cx + 1, h.gastos, 'var(--acc)', mesCap(h.mes) + ' · Gastos');
+      out += '<text x="' + cx + '" y="' + (Ht - 8) + '" text-anchor="middle" font-size="11" fill="' + (ult ? 'var(--ink)' : 'var(--ink3)') + '" font-weight="' + (ult ? 600 : 400) + '">' + MES[+h.mes.slice(5, 7) - 1] + '</text>';
+      if (ult) {
+        if (h.ingresos > 0) out += '<text x="' + (cx - bw / 2 - 1) + '" y="' + (y(h.ingresos) - 6) + '" text-anchor="middle" font-size="10.5" fill="var(--ink2)">' + M(h.ingresos).replace('$', '') + '</text>';
+        if (h.gastos > 0) out += '<text x="' + (cx + bw / 2 + 1) + '" y="' + (y(h.gastos) - 6) + '" text-anchor="middle" font-size="10.5" fill="var(--ink2)">' + M(h.gastos).replace('$', '') + '</text>';
+      }
+    });
+    return '<svg viewBox="0 0 ' + W + ' ' + Ht + '" role="img" aria-label="Ingresos y gastos de los últimos 6 meses" style="width:100%;height:auto;display:block;margin-top:6px">' + out + '</svg>' +
+      '<div class="leg"><span><i style="border-color:var(--yel);border-top-width:8px"></i>Ingresos</span><span><i style="border-color:var(--acc);border-top-width:8px"></i>Gastos</span></div>';
+  }
+
+  function detalleCategoria(F, cat) {
+    var l = F.movimientos.filter(function (m) { return m.monto < 0 && m.cat === cat && m.fecha.slice(0, 7) === F.mes; });
+    if (!l.length) return '<div class="empty" style="padding:8px 0">Sin detalle disponible.</div>';
+    return l.map(function (m) { return '<div class="cdr"><small>' + diaMes(m.fecha) + '</small><span>' + esc(m.desc) + '</span><b class="num">' + COP(-m.monto) + '</b></div>'; }).join('') +
+      '<div class="cdr tot"><small></small><span>' + l.length + ' gasto' + (l.length === 1 ? '' : 's') + '</span><b class="num">' + COP(-l.reduce(function (s, m) { return s + m.monto; }, 0)) + '</b></div>';
+  }
+
+  function movsFiltrados(F) {
+    var ref = F.es_actual ? hoyIso() : F.mes + '-' + pad2(F.dias_mes), desde = '0000', hasta = '9999';
+    if (stF.desde || stF.hasta) { desde = stF.desde || '0000'; hasta = stF.hasta || '9999'; }
+    else if (stF.rango === 'mes') { desde = F.mes + '-01'; hasta = F.mes + '-31'; }
+    else if (stF.rango === 'ant') { desde = F.mes_anterior + '-01'; hasta = F.mes_anterior + '-31'; }
+    else if (stF.rango === '7d') { desde = isoRestar(ref, 6); hasta = ref; }
+    else if (stF.rango === '30d') { desde = isoRestar(ref, 29); hasta = ref; }
+    var q = norm(stF.q);
+    return F.movimientos.filter(function (m) {
+      return m.fecha >= desde && m.fecha <= hasta && (stF.tipo === 'todos' || (stF.tipo === 'gastos' ? m.monto < 0 : m.monto > 0)) &&
+        (!stF.cat || m.cat === stF.cat) && (!q || norm(m.desc + ' ' + m.cat).indexOf(q) >= 0);
+    });
+  }
+  function pintarMovs() {
+    var c = $('#movlist'); if (!c || !FV) return;
+    var l = movsFiltrados(FV), g = 0, i = 0;
+    l.forEach(function (m) { if (m.monto < 0) g -= m.monto; else i += m.monto; });
+    $('#movsum').textContent = l.length + ' movimiento' + (l.length === 1 ? '' : 's') + (g ? ' · gastos ' + COP(g) : '') + (i ? ' · ingresos ' + COP(i) : '');
+    c.innerHTML = l.length ? l.slice(0, stF.n).map(function (m) {
+      return '<div class="mv"><small>' + diaMes(m.fecha) + '</small><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(m.desc) + '</span><span class="chip" style="justify-self:start">' + esc(m.cat || '—') + '</span><span class="amt ' + (m.monto > 0 ? 'in' : '') + '">' + (m.monto > 0 ? '+' : '−') + COP(Math.abs(m.monto)) + '</span></div>';
+    }).join('') + (l.length > stF.n ? '<button class="mas" type="button" data-act="masmov">Ver más · quedan ' + (l.length - stF.n) + '</button>' : '') : '<div class="empty">Ningún movimiento con esos filtros.</div>';
+  }
+  function bindMovs() {
+    var por = function (id, ev, f) { var el = $(id); if (el) el[ev] = f; };
+    por('#mf-rango', 'onchange', function () { stF.rango = this.value; stF.desde = stF.hasta = ''; $('#mf-desde').value = ''; $('#mf-hasta').value = ''; stF.n = 8; pintarMovs(); });
+    por('#mf-desde', 'onchange', function () { stF.desde = this.value; $('#mf-rango').value = 'custom'; stF.n = 8; pintarMovs(); });
+    por('#mf-hasta', 'onchange', function () { stF.hasta = this.value; $('#mf-rango').value = 'custom'; stF.n = 8; pintarMovs(); });
+    por('#mf-cat', 'onchange', function () { stF.cat = this.value; stF.n = 8; pintarMovs(); });
+    por('#mf-q', 'oninput', function () { stF.q = this.value; stF.n = 8; pintarMovs(); });
+    document.querySelectorAll('[data-mtipo]').forEach(function (b) { b.onclick = function () { stF.tipo = b.dataset.mtipo; stF.n = 8; document.querySelectorAll('[data-mtipo]').forEach(function (x) { x.classList.toggle('on', x === b); }); pintarMovs(); }; });
+    pintarMovs();
+  }
+
+  function irMesFin(d) {
+    var base = finSel || (FIN && FIN.mes); if (!base) return;
+    var t = d === 0 ? '' : mesMas(base, d);
+    if (t && FIN && t >= FIN.mes) t = '';        // no hay meses futuros: el actual es el límite
+    finSel = t; stF = nuevoFiltro();
+    render(true);
+    if (!t || FINS[t]) return;
+    api('finanzas', { mes: t }).then(function (j) { FINS[t] = j; if (finSel === t) render(true); })
+      .catch(function (e) { finSel = ''; render(true); avisar('No pude leer ' + t + ': ' + e.message); });
+  }
+
   function vFin() {
-    if (!FIN) return '<div class="view"><div class="head"><div><h1 class="t">Finanzas</h1></div></div><div class="card empty" style="margin-top:18px">' + (FIN_ERR ? esc(finMensaje()) : '<div class="loading">Cargando finanzas…</div>') + '</div></div>';
-    var f = finCalc(), proy = proyeccion(), mes = MESL[+FIN.mes.slice(5, 7) - 1], ant = MESL[+FIN.mes_anterior.slice(5, 7) - 1];
-    var maxC = FIN.categorias.length ? FIN.categorias[0][1] : 1, bal = FIN.ingresos - FIN.gasto;
-    var pagos = FIN.pagos.map(function (p) {
+    var F = finVista();
+    var cab = '<div class="head"><div><h1 class="t">Finanzas</h1>' + (F ? '<p class="sub">' + mesCap(F.mes) + ' · ' + (F.es_actual ? 'día ' + F.dia + ' de ' + F.dias_mes : 'mes cerrado') + '</p>' : '') + '</div>' +
+      (FIN ? '<div class="mnavf"><button class="pill" type="button" data-act="mes" data-d="-1" aria-label="Mes anterior">‹</button><span class="mlab">' + mesCap(finSel || FIN.mes) + '</span><button class="pill" type="button" data-act="mes" data-d="1" aria-label="Mes siguiente"' + (finSel ? '' : ' disabled') + '>›</button>' + (finSel ? '<button class="pill" type="button" data-act="mes" data-d="0">Este mes</button>' : '') + '</div>' : '') + '</div>';
+    if (!F) { FV = null; return '<div class="view">' + cab + '<div class="card empty" style="margin-top:18px">' + (FIN_ERR && !finSel ? esc(finMensaje()) : '<div class="loading">Cargando finanzas…</div>') + '</div></div>'; }
+    FV = F;
+    var f = finCalc(F), proy = proyeccion(F), ant = nombreMes(F.mes_anterior), antTot = F.gasto_ant;
+    var maxC = F.categorias.length ? F.categorias[0][1] : 1, bal = F.ingresos - F.gasto, maxO = (F.ingresos_origen || []).length ? F.ingresos_origen[0][1] : 1;
+    var pagos = (F.pagos || []).map(function (p) {
       var n = dias(p.fecha), d = parse(p.fecha);
       return '<div class="pay"><div class="dt"><b>' + d.getDate() + '</b><small>' + MES[d.getMonth()] + '</small></div><div class="t" style="flex:1;min-width:0"><b>' + esc(p.nombre) + '</b><div style="color:var(--ink3);font-size:11.5px">' + esc(p.tipo) + '</div></div>' +
         (n <= 7 ? '<span class="chip ' + (n <= 0 ? 'crit' : 'warn') + '">' + (n < 0 ? 'Vencido' : n === 0 ? 'Hoy' : 'En ' + n + ' d') + '</span>' : '') + '<b class="num" style="min-width:92px;text-align:right">' + COP(p.monto) + '</b></div>';
     }).join('');
-    return '<div class="view"><div class="head"><div><h1 class="t">Finanzas</h1><p class="sub">' + mes.charAt(0).toUpperCase() + mes.slice(1) + ' ' + FIN.mes.slice(0, 4) + ' · día ' + FIN.dia + ' de ' + FIN.dias_mes + '</p></div></div>' +
+    var cats = []; F.movimientos.forEach(function (m) { if (cats.indexOf(m.cat) < 0 && m.cat) cats.push(m.cat); }); cats.sort();
+    var chip = F.es_actual ? (f.antAlDia > 0 ? '<span class="chip ' + (f.vs <= 0 ? 'good' : 'warn') + '" style="vertical-align:middle;font-size:12px">' + (f.vs > 0 ? '+' : '') + f.vs + '% frente a ' + ant + ' al día ' + F.dia + '</span>' : '')
+      : (antTot > 0 ? '<span class="chip ' + (F.gasto <= antTot ? 'good' : 'warn') + '" style="vertical-align:middle;font-size:12px">' + (F.gasto > antTot ? '+' : '') + Math.round((F.gasto / antTot - 1) * 100) + '% frente a ' + ant + '</span>' : '');
+    var resumen = F.es_actual
+      ? 'Si el resto del mes se parece a ' + ant + ', cierras en <b style="color:var(--ink)">' + M(proy) + '</b>' + (f.antTot > 0 ? (proy > f.antTot ? ', <span style="color:var(--crit)">' + M(proy - f.antTot) + ' más que ' + ant + ' (' + M(f.antTot) + ')</span>' : ', menos que ' + ant + ' (' + M(f.antTot) + ')') : '') + '.'
+      : 'Cerró en <b style="color:var(--ink)">' + M(F.gasto) + '</b>' + (antTot > 0 ? ' contra ' + M(antTot) + ' en ' + ant : '') + '.';
+    return '<div class="view">' + cab +
       '<div class="card fhero"><small style="color:var(--ink2);font-weight:500">Gastado en el mes</small>' +
-      '<div class="big"><small>COP</small>' + Math.round(FIN.gasto).toLocaleString('es-CO') + ' ' + (f.antAlDia > 0 ? '<span class="chip ' + (f.vs <= 0 ? 'good' : 'warn') + '" style="vertical-align:middle;font-size:12px">' + (f.vs > 0 ? '+' : '') + f.vs + '% frente a ' + ant + ' al día ' + FIN.dia + '</span>' : '') + '</div>' +
-      '<div style="color:var(--ink2);font-size:12.5px">Al ritmo actual cierras en <b style="color:var(--ink)">' + M(proy) + '</b>' + (f.antTot > 0 ? (proy > f.antTot ? ', <span style="color:var(--crit)">' + M(proy - f.antTot) + ' más que ' + ant + ' (' + M(f.antTot) + ')</span>' : ', menos que ' + ant + ' (' + M(f.antTot) + ')') : '') + '. Los pagos fijos que aún no llegan a su día no están contados.</div>' +
-      chartFin(f) + '</div>' +
-      '<div class="grid2" style="margin-top:14px"><div class="card mini"><h2 class="s" style="margin-bottom:8px">Por categoría</h2>' +
-      (FIN.categorias.length ? FIN.categorias.map(function (c, i) { return '<div class="cat"><span>' + esc(c[0]) + '</span><div class="bar"><i class="' + (i === 0 ? 'acc' : '') + '" style="width:' + Math.round(c[1] / maxC * 100) + '%"></i></div><span class="num">' + COP(c[1]) + '</span></div>'; }).join('') : '<div class="empty">Sin gastos este mes.</div>') + '</div>' +
-      '<div class="card mini"><h2 class="s" style="margin-bottom:12px">Ingresos y balance</h2>' +
-      '<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px"><span>Ingresos</span><b class="num" style="color:var(--good)">' + COP(FIN.ingresos) + '</b></div><div class="bar"><i style="background:var(--good);width:100%"></i></div>' +
-      '<div style="display:flex;justify-content:space-between;font-size:12.5px;margin:12px 0 6px"><span>Gastos</span><b class="num">' + COP(FIN.gasto) + '</b></div><div class="bar"><i class="acc" style="width:' + (FIN.ingresos > 0 ? Math.min(100, Math.round(FIN.gasto / FIN.ingresos * 100)) : 0) + '%"></i></div>' +
-      '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line2);display:flex;justify-content:space-between;align-items:baseline"><span style="color:var(--ink2)">Balance del mes</span><b class="num" style="font-size:20px;color:' + (bal < 0 ? 'var(--crit)' : 'var(--ink)') + '">' + (bal >= 0 ? '+' : '−') + COP(Math.abs(bal)) + '</b></div></div></div>' +
-      sec('Próximos pagos', FIN.pagos.some(function (p) { return dias(p.fecha) <= 7; }) ? '<span class="chip warn">hay pagos en menos de 7 días</span>' : '') + (pagos ? '<div class="card list">' + pagos + '</div>' : '<div class="card empty">Sin pagos en los próximos 31 días.</div>') +
-      sec('Movimientos recientes') + (FIN.movimientos.length ? '<div class="card tbl">' + FIN.movimientos.map(function (m) {
-        return '<div class="mv"><small>' + diaMes(m.fecha) + '</small><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(m.desc) + '</span><span class="chip" style="justify-self:start">' + esc(m.cat || '—') + '</span><span class="amt ' + (m.monto > 0 ? 'in' : '') + '">' + (m.monto > 0 ? '+' : '−') + COP(Math.abs(m.monto)) + '</span></div>';
-      }).join('') + '</div>' : '<div class="card empty">Aún no hay movimientos.</div>') +
-      '<div class="foot">Actualizado ' + esc((FIN.actualizado || '').slice(11, 16)) + '</div></div>';
+      '<div class="big"><small>COP</small>' + Math.round(F.gasto).toLocaleString('es-CO') + ' ' + chip + '</div>' +
+      '<div style="color:var(--ink2);font-size:12.5px">' + resumen + '</div>' + chartFin(F, f) + '</div>' +
+      '<div class="grid2 eq" style="margin-top:14px"><div class="card mini"><h2 class="s">Ingresos y gastos · últimos 6 meses</h2>' + (chartHist(F) || '<div class="empty">Falta actualizar el script para ver el histórico.</div>') + '</div>' +
+      '<div class="card mini"><h2 class="s" style="margin-bottom:12px">Ingresos del mes por origen</h2>' +
+        ((F.ingresos_origen || []).length ? F.ingresos_origen.map(function (c) { return '<div class="cat static"><span>' + esc(c[0]) + '</span><div class="bar"><i style="background:var(--yel);width:' + Math.round(c[1] / maxO * 100) + '%"></i></div><span class="num">' + COP(c[1]) + '</span></div>'; }).join('') : '<div class="empty">Sin ingresos este mes.</div>') +
+        '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2);display:flex;justify-content:space-between;font-size:12.5px"><span style="color:var(--ink2)">Gastos del mes</span><b class="num">' + COP(F.gasto) + '</b></div>' +
+        '<div style="margin-top:8px;display:flex;justify-content:space-between;align-items:baseline"><span style="color:var(--ink2)">Balance</span><b class="num" style="font-size:20px;color:' + (bal < 0 ? 'var(--crit)' : 'var(--ink)') + '">' + (bal >= 0 ? '+' : '−') + COP(Math.abs(bal)) + '</b></div></div></div>' +
+      '<div class="card mini" style="margin-top:14px"><div class="catt"><h2 class="s">Por categoría</h2><small>toca una para ver sus gastos</small></div>' +
+      (F.categorias.length ? F.categorias.map(function (c, i) {
+        return '<div class="catb"><button class="cat" type="button" data-act="cat" aria-expanded="false"><span>' + esc(c[0]) + '</span><div class="bar"><i class="' + (i === 0 ? 'acc' : '') + '" style="width:' + Math.round(c[1] / maxC * 100) + '%"></i></div><span class="num">' + COP(c[1]) + ' <em>' + Math.round(c[1] / (F.gasto || 1) * 100) + '%</em></span>' + ic('chev', 'chev cv') + '</button><div class="cd" hidden>' + detalleCategoria(F, c[0]) + '</div></div>';
+      }).join('') : '<div class="empty">Sin gastos este mes.</div>') + '</div>' +
+      (F.es_actual ? sec('Próximos pagos', (F.pagos || []).some(function (p) { return dias(p.fecha) <= 7; }) ? '<span class="chip warn">hay pagos en menos de 7 días</span>' : '') + (pagos ? '<div class="card list">' + pagos + '</div>' : '<div class="card empty">Sin pagos en los próximos 31 días.</div>') : '') +
+      '<div class="sec"><h2 class="s">Movimientos</h2><span class="chip" id="movsum"></span></div>' +
+      '<div class="tools mf"><select class="pill" id="mf-rango" aria-label="Periodo"><option value="mes">' + esc(mesCap(F.mes)) + '</option><option value="ant">' + esc(mesCap(F.mes_anterior)) + '</option><option value="7d">Últimos 7 días</option><option value="30d">Últimos 30 días</option><option value="todo">Los dos meses</option><option value="custom">Personalizado</option></select>' +
+      '<input class="pill dt" type="date" id="mf-desde" aria-label="Desde" title="Desde"><input class="pill dt" type="date" id="mf-hasta" aria-label="Hasta" title="Hasta">' +
+      '<select class="pill" id="mf-cat" aria-label="Categoría"><option value="">Todas las categorías</option>' + cats.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('') + '</select>' +
+      '<div class="pills"><button class="pill on" type="button" data-mtipo="todos">Todos</button><button class="pill" type="button" data-mtipo="gastos">Gastos</button><button class="pill" type="button" data-mtipo="ingresos">Ingresos</button></div>' +
+      '<label class="search">' + ic('search') + '<input id="mf-q" type="search" placeholder="Buscar" autocomplete="off"></label></div>' +
+      '<div class="card tbl" id="movlist"></div>' +
+      '<div class="foot">Actualizado ' + esc((F.actualizado || '').slice(11, 16)) + '</div></div>';
   }
   function posFin() {
-    var hit = $('#hit');
-    if (!hit || !FIN) return;
-    var ln = $('#lnN');
+    if (!FV) return;
+    bindMovs();
+    var hit = $('#hit'); if (!hit) return;
+    var F = FV, ln = $('#lnN');
     if (ln && ln.getTotalLength && !window.matchMedia('(prefers-reduced-motion:reduce)').matches) {
       var len = ln.getTotalLength(); ln.style.strokeDasharray = len; ln.style.strokeDashoffset = len; ln.getBoundingClientRect();
       ln.style.transition = 'stroke-dashoffset 1s cubic-bezier(.2,.7,.2,1)'; ln.style.strokeDashoffset = 0;
     }
-    var f = finCalc(), ch = $('#chart'), svgEl = ch.querySelector('svg'), tip = $('#tip'), cx = $('#cx'), co = $('#co');
-    var W = +ch.dataset.w, H = +ch.dataset.h, L = 52, R = 14, T = 14, B = 26, N = Math.max(FIN.dias_mes, f.ca.length);
-    var max = tope(Math.max(f.antTot, proyeccion(), FIN.gasto, 1)).max;
+    var f = finCalc(F), ch = $('#chart'), svgEl = ch.querySelector('svg'), tip = $('#tip'), cx = $('#cx'), co = $('#co');
+    var W = +ch.dataset.w, H = +ch.dataset.h, L = 52, R = 14, T = 14, B = 26, N = Math.max(F.dias_mes, f.ca.length);
+    var max = tope(Math.max(f.antTot, proyeccion(F), F.gasto, 1)).max;
     var mover = function (e) {
       var r = svgEl.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W;
       var d = Math.max(1, Math.min(f.ca.length || 1, Math.round((px - L) / (W - L - R) * (N - 1) + 1)));
       var X = L + (d - 1) / (N - 1 || 1) * (W - L - R), vo = f.ca[d - 1] || 0, vn = d <= f.cm.length ? f.cm[d - 1] : null, Y = T + (1 - vo / max) * (H - T - B);
       cx.setAttribute('x1', X); cx.setAttribute('x2', X); cx.setAttribute('opacity', 1);
       co.setAttribute('cx', X); co.setAttribute('cy', Y); co.setAttribute('opacity', 1);
-      tip.innerHTML = '<b>Día ' + d + '</b><div><span>' + MES[+FIN.mes_anterior.slice(5, 7) - 1] + '</span><span>' + COP(vo) + '</span></div><div><span>' + MES[+FIN.mes.slice(5, 7) - 1] + '</span><span>' + (vn != null ? COP(vn) : 'aún no') + '</span></div>';
+      tip.innerHTML = '<b>Día ' + d + '</b><div><span>' + MES[+F.mes_anterior.slice(5, 7) - 1] + '</span><span>' + COP(vo) + '</span></div><div><span>' + MES[+F.mes.slice(5, 7) - 1] + '</span><span>' + (vn != null ? COP(vn) : 'aún no') + '</span></div>';
       tip.style.left = Math.max(80, Math.min(r.width - 80, X / W * r.width)) + 'px'; tip.style.top = (Y / H * r.height - 10) + 'px'; tip.style.opacity = 1;
     };
     hit.addEventListener('pointermove', mover); hit.addEventListener('pointerdown', mover);
@@ -792,7 +920,7 @@
 
   function iniciar() {
     $('#refresh').innerHTML = ic('refresh'); $('#sbtn-i').innerHTML = ic('search'); $('#pal-i').innerHTML = ic('search');
-    $('#refresh').onclick = function () { BIT = {}; VERIF = null; cargar(true); };
+    $('#refresh').onclick = function () { BIT = {}; VERIF = null; FINS = {}; finSel = ''; cargar(true); };
     var foto = lsGet('mp_foto'); if (foto) $('#avimg').src = foto;
     $('#avimg').onerror = function () { this.onerror = null; this.src = 'assets/logo-me.png'; };
     st.vista = lsGet('mp_vista') === 'tarjetas' ? 'tarjetas' : 'lista';
@@ -832,6 +960,9 @@
       if (a.dataset.open) { abrir(a.dataset.open); return; }
       var act = a.dataset.act, fila = a.closest('.tk'), id = fila ? fila.dataset.id : '';
       if (act === 'nueva') return abrirForm(null, a.dataset.cliente || '');
+      if (act === 'cat') { var cd = a.parentNode.querySelector('.cd'); cd.hidden = !cd.hidden; a.setAttribute('aria-expanded', String(!cd.hidden)); return; }
+      if (act === 'mes') return irMesFin(+a.dataset.d);
+      if (act === 'masmov') { stF.n += 20; return pintarMovs(); }
       if (!id || id.indexOf('tmp') === 0) return;
       if (act === 'done') cambiar(id, { estado: 'hecha' }, 'Tarea hecha');
       else if (act === 'fecha') menuFecha(a, id);
