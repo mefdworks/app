@@ -24,7 +24,7 @@
 <body>
 
 <section id="login" class="hide">
-  <form class="gbox" id="login-form">
+  <form class="gbox" id="login-form" novalidate>
     <img src="assets/logo-michael-espinosa.png" alt="Michael Espinosa, estratega digital" width="1869" height="527">
     <h1>Todo lo mío, <em>en un solo lugar</em></h1>
     <p>Trabajo, tareas, enlaces y finanzas. Entra con tu usuario y tu clave.</p>
@@ -66,7 +66,7 @@
   <header class="mh"><div><h3 id="mt"></h3><small id="ms"></small></div><button class="x" id="mx" type="button" aria-label="Cerrar">&times;</button></header>
   <div class="mbody" id="mb"></div></div></div>
 
-<div class="modal" id="tmodal"><form class="mbox tbox" id="tform" autocomplete="off">
+<div class="modal" id="tmodal"><form class="mbox tbox" id="tform" role="dialog" aria-modal="true" aria-labelledby="tt" autocomplete="off" novalidate>
   <header class="mh"><h3 id="tt">Nueva tarea</h3><button class="x" id="tx" type="button" aria-label="Cerrar">&times;</button></header>
   <div class="tfields">
     <div><label for="t-tarea">Tarea</label><input class="fi" id="t-tarea" type="text" maxlength="300" placeholder="¿Qué hay que hacer?" required></div>
@@ -77,7 +77,7 @@
   </div>
   <footer class="tfoot"><button class="pill" id="tc" type="button">Cancelar</button><button class="btn sm" type="submit">Guardar</button></footer>
 </form></div>
-<div class="modal" id="nmodal"><form class="mbox tbox" id="nform" autocomplete="off">
+<div class="modal" id="nmodal"><form class="mbox tbox" id="nform" role="dialog" aria-modal="true" aria-labelledby="nt" autocomplete="off" novalidate>
   <header class="mh"><h3 id="nt">Nueva nota</h3><button class="x" id="nx" type="button" aria-label="Cerrar">&times;</button></header>
   <div class="tfields">
     <div><label for="n-titulo">Título</label><input class="fi" id="n-titulo" type="text" maxlength="200" placeholder="Ej. Reunión Compensar, ajustes de pauta" required></div>

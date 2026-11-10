@@ -2,10 +2,10 @@
    Escritorio: ventana flotante con sidebar sobre un fondo suave. Celular: pantalla completa con barra inferior. */
 :root{
   --win:#fff;--side:#f8f8fa;--card:#fff;--line:#e8e8f0;--line2:#f0f0f4;
-  --ink:#1a1a2e;--ink2:#4a4a6a;--ink3:#8a8aaa;
+  --ink:#1a1a2e;--ink2:#4a4a6a;--ink3:#6a6a92;
   --acc:#5360a5;--acc-soft:#eee8ff;--acc-ink:#5b4fcf;--pri:#6c77c1;
   --yel:#f9b431;--yel-soft:#fff8e0;
-  --good:#2e7d32;--good-soft:#e8ffe8;--warn:#b8860b;--warn-soft:#fff8e0;--crit:#c44a2a;--crit-soft:#ffe8e0;
+  --good:#2e7d32;--good-soft:#e8ffe8;--warn:#926a09;--warn-soft:#fff8e0;--crit:#b74527;--crit-soft:#ffe8e0;
   --adcom:#1a4ac4;--adcom-bg:#e8f0ff;--free:#5b4fcf;--free-bg:#ede8ff;--pers:#1a7a5a;--pers-bg:#e0fff4;
   --shadow:0 30px 80px -20px rgba(26,26,46,.22),0 8px 24px -8px rgba(108,119,193,.28);
   --font:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -360,3 +360,78 @@ textarea.fi{resize:vertical;min-height:70px}
 .seg.keep{display:inline-flex!important}
 @media (max-width:760px){.cards3.tg{grid-template-columns:minmax(0,1fr)}}
 .tgh .kebab svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+
+/* ── Esqueletos de carga ── */
+@keyframes shim{to{background-position:-200% 0}}
+.sk i{display:block;border-radius:8px;background:linear-gradient(90deg,var(--line2) 25%,#f8f8fb 50%,var(--line2) 75%);background-size:200% 100%;animation:shim 1.4s linear infinite}
+.sk .sk-t{height:22px;width:34%;margin-bottom:8px}
+.sk .sk-s{height:12px;width:52%}
+.sk .kpis{margin-top:18px}
+.sk .kpi i+i{margin-top:10px}
+.sk .card{margin-top:14px}
+.sk .row{pointer-events:none}
+.sk .row .t{display:grid;gap:7px}
+.sk .row .sk-c{width:30px;height:30px;border-radius:9px;flex:none}
+.sk-txt{padding:18px 22px;display:grid;gap:10px}
+
+/* ── Estados vacíos con salida ── */
+.empty b{display:block;color:var(--ink2);font-size:13px;font-weight:600;margin-bottom:2px}
+.empty .eb{margin-top:12px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--acc-ink)}
+.empty .eb:hover{border-color:var(--pri)}
+
+/* ── Avisos de error y validación en línea ── */
+.toast.err{background:var(--crit)}
+.toast.err button{color:#fff;text-decoration:underline}
+.ferr{margin:5px 4px 0;font-size:11.5px;color:var(--crit)}
+.gbox .ferr{margin:-4px 14px 0;color:var(--crit)}
+[aria-invalid=true]{border-color:var(--crit)!important}
+[aria-invalid=true]:focus{box-shadow:0 0 0 3px rgba(196,74,42,.18)!important}
+
+/* ── Celular: sin zoom al enfocar un campo y sin doble toque ── */
+button,a,input,select,textarea,.chk{touch-action:manipulation}
+@media (max-width:760px){
+  input,select,textarea,.fi,.gbox input,.search input,.palin input,.osel{font-size:16px}
+}
+
+/* ── Ronda 1: movimiento con propósito ── */
+/* Ventanas: entran y salen con fundido (antes aparecían y desaparecían de golpe). */
+.modal{display:flex;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .18s ease,visibility 0s linear .18s}
+.modal.on{visibility:visible;opacity:1;pointer-events:auto;transition:opacity .18s ease}
+.modal .mbox{animation:none;transform:translateY(10px) scale(.985);transition:transform .24s cubic-bezier(.2,.8,.2,1)}
+.modal.on .mbox{transform:none}
+/* Menús emergentes: salen desde su botón. */
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(-4px)}}
+.pop,.menu.on{animation:pop .14s cubic-bezier(.2,.8,.2,1);transform-origin:top right}
+/* Completar tarea: el check se llena, la fila se pliega y las demás suben a ocupar el hueco. */
+.row.tk{transition:height .26s cubic-bezier(.4,0,.2,1) .1s,opacity .18s ease .12s,padding .26s ease .1s}
+.row.tk.saliendo{opacity:0;overflow:hidden;padding-top:0;padding-bottom:0;border-top-width:0}
+.row.tk.saliendo .chk{background:var(--good);border-color:var(--good)}
+.row.tk.saliendo .chk::after{content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.row.tk.entra{animation:rise .32s cubic-bezier(.2,.7,.2,1) both}
+/* Respuesta al toque. */
+.pill,.chk,.kebab,.icon-btn,.seg button,.mas,.empty .eb{transition:transform .12s cubic-bezier(.2,.7,.2,1)}
+.pill:not(select):active,.chk:active,.kebab:active,.icon-btn:active,.seg button:active,.empty .eb:active{transform:scale(.96)}
+
+/* ── Ronda 3: entrada escalonada, gráfica, gestos ── */
+@keyframes fade{from{opacity:0}}
+.view.esc .kpi,.view.esc .grid2>*{animation:fade .5s ease both;animation-delay:var(--d,0ms)}
+@keyframes crece{from{transform:scaleY(0)}}
+.view.esc svg[aria-label^="Ingresos"] path[fill]{transform-box:fill-box;transform-origin:bottom;animation:crece .7s cubic-bezier(.2,.7,.2,1) both}
+.view.esc svg[aria-label^="Ingresos"] path[fill]:nth-of-type(even){animation-delay:.06s}
+.ptr{position:fixed;top:calc(var(--safe-t) + 10px);left:50%;transform:translateX(-50%);width:34px;height:34px;border-radius:50%;background:#fff;box-shadow:var(--shadow);display:grid;place-items:center;color:var(--acc);opacity:0;pointer-events:none;z-index:40;transition:opacity .15s}
+.ptr.cargando svg{animation:spin .8s linear infinite}
+@media (max-width:760px){
+  .drawer .dh{touch-action:none;position:relative;padding-top:22px}
+  .drawer .dh::before{content:"";position:absolute;top:8px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:99px;background:var(--line)}
+  .mnav::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:var(--iw,0px);transform:translateX(var(--ix,0px));background:var(--acc-soft);border-radius:999px;opacity:0;pointer-events:none}
+  .mnav.ready::before{opacity:1;transition:transform .32s cubic-bezier(.2,.8,.2,1),width .32s cubic-bezier(.2,.8,.2,1)}
+  .mnav.ready a.on{background:none}
+}
+
+/* ── Datos extremos: nombres largos o sin espacios no ensanchan ni rompen la pantalla ── */
+.grid2>*,.kpis>*,.cards3>*,.head>*,.tgh>*{min-width:0}
+.row .t b,.row.nt .grow b,.ev>div,.ev b,.ev small,.tile2 .tl,.kpi b,.kpi small,.fhero .big,.pace small span{overflow-wrap:anywhere}
+.row .t b,.row.nt .grow b{display:block}
+.chip{max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:left}
+.pace small{flex-wrap:wrap}
+.row.nt .grow{flex:1 1 60%}
