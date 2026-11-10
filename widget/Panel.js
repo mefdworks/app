@@ -62,7 +62,7 @@ function armar(d, familia) {
   const w = new ListWidget();
   w.backgroundColor = FONDO;
   w.setPadding(14, 14, 12, 14);
-  w.url = 'https://mefdworks.github.io/maicolespinosa/#hoy';
+  w.url = 'https://app.maicolespinosa.com/#hoy';
   w.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000);
 
   if (familia === 'small' || familia === 'accessoryRectangular') {
