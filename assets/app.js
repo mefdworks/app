@@ -117,7 +117,7 @@
   // ── Logos: assets/logos/<clave>.png; si el archivo no existe se muestran las iniciales ──
   var ALIAS_LOGO = { basisdsp: 'basis', googleanalytics: 'analytics', googletagmanager: 'tagmanager', anunciosopenai: 'openai', campanasucompensar: 'ucompensar',
     driveadcom: 'drive', drivepersonal: 'drive', googledrive: 'drive', googlesheets: 'sheets', github: 'github', githubadcom: 'github', githubpersonal: 'github',
-    xads: 'x', portaladcom: 'general', panelpersonal: 'me', vulrt: 'vultr', shopifymara: 'shopify' };
+    xads: 'x', portaladcom: 'general', panelpersonal: 'me', vulrt: 'vultr', shopifymara: 'shopify', misitioweb: 'me' };
   var MARCAS = [[/facebook\.com|fb\.com|instagram\.com/, 'meta'], [/^ads\.google\.com$/, 'google'], [/tiktok\.com/, 'tiktok'],
     [/linkedin\.com/, 'linkedin'], [/(^|\.)x\.com$|twitter\.com$/, 'x'], [/youtube\.com/, 'youtube']];
   function marca(url) {
@@ -151,7 +151,8 @@
   }
   function tileIco(l) {
     var mono = inicial(l.nombre), src;
-    if (l.tipo === 'Portal' || (l.tipo === 'Personal' && l.cliente !== 'general')) src = logoPerfil(l.cliente);
+    // Las herramientas personales de un cliente (p. ej. Shopify Mara) llevan el logo de la marca, no el del perfil.
+    if (l.tipo === 'Portal') src = logoPerfil(l.cliente);
     else src = 'assets/logos/' + logoKey(l) + '.png';
     return '<span class="ti" data-mono="' + esc(mono) + '">' + imgLogo(src, mono) + '</span>';
   }
