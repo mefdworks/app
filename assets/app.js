@@ -117,7 +117,7 @@
   // ── Logos: assets/logos/<clave>.png; si el archivo no existe se muestran las iniciales ──
   var ALIAS_LOGO = { basisdsp: 'basis', googleanalytics: 'analytics', googletagmanager: 'tagmanager', anunciosopenai: 'openai', campanasucompensar: 'ucompensar',
     driveadcom: 'drive', drivepersonal: 'drive', googledrive: 'drive', googlesheets: 'sheets', github: 'github', githubadcom: 'github', githubpersonal: 'github',
-    xads: 'x', portaladcom: 'general', panelpersonal: 'me' };
+    xads: 'x', portaladcom: 'general', panelpersonal: 'me', vulrt: 'vultr', shopifymara: 'shopify' };
   var MARCAS = [[/facebook\.com|fb\.com|instagram\.com/, 'meta'], [/^ads\.google\.com$/, 'google'], [/tiktok\.com/, 'tiktok'],
     [/linkedin\.com/, 'linkedin'], [/(^|\.)x\.com$|twitter\.com$/, 'x'], [/youtube\.com/, 'youtube']];
   function marca(url) {
@@ -540,7 +540,7 @@
   }
   function bindMovs() {
     var por = function (id, ev, f) { var el = $(id); if (el) el[ev] = f; };
-    por('#mf-rango', 'onchange', function () { stF.rango = this.value; stF.desde = stF.hasta = ''; $('#mf-desde').value = ''; $('#mf-hasta').value = ''; stF.n = 8; pintarMovs(); });
+    por('#mf-rango', 'onchange', function () { stF.rango = this.value; stF.desde = stF.hasta = ''; $('#mf-desde').value = ''; $('#mf-hasta').value = ''; $('#mf-fechas').hidden = this.value !== 'custom'; stF.n = 8; pintarMovs(); });
     por('#mf-desde', 'onchange', function () { stF.desde = this.value; $('#mf-rango').value = 'custom'; stF.n = 8; pintarMovs(); });
     por('#mf-hasta', 'onchange', function () { stF.hasta = this.value; $('#mf-rango').value = 'custom'; stF.n = 8; pintarMovs(); });
     por('#mf-cat', 'onchange', function () { stF.cat = this.value; stF.n = 8; pintarMovs(); });
@@ -595,7 +595,7 @@
       (F.es_actual ? sec('Próximos pagos', (F.pagos || []).some(function (p) { return dias(p.fecha) <= 7; }) ? '<span class="chip warn">hay pagos en menos de 7 días</span>' : '') + (pagos ? '<div class="card list">' + pagos + '</div>' : '<div class="card empty">Sin pagos en los próximos 31 días.</div>') : '') +
       '<div class="sec"><h2 class="s">Movimientos</h2><span class="chip" id="movsum"></span></div>' +
       '<div class="tools mf"><select class="pill" id="mf-rango" aria-label="Periodo"><option value="mes">' + esc(mesCap(F.mes)) + '</option><option value="ant">' + esc(mesCap(F.mes_anterior)) + '</option><option value="7d">Últimos 7 días</option><option value="30d">Últimos 30 días</option><option value="todo">Los dos meses</option><option value="custom">Personalizado</option></select>' +
-      '<input class="pill dt" type="date" id="mf-desde" aria-label="Desde" title="Desde"><input class="pill dt" type="date" id="mf-hasta" aria-label="Hasta" title="Hasta">' +
+      '<div class="mfd" id="mf-fechas" hidden><label>Desde<input class="pill dt" type="date" id="mf-desde"></label><label>Hasta<input class="pill dt" type="date" id="mf-hasta"></label></div>' +
       '<select class="pill" id="mf-cat" aria-label="Categoría"><option value="">Todas las categorías</option>' + cats.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('') + '</select>' +
       '<div class="pills"><button class="pill on" type="button" data-mtipo="todos">Todos</button><button class="pill" type="button" data-mtipo="gastos">Gastos</button><button class="pill" type="button" data-mtipo="ingresos">Ingresos</button></div>' +
       '<label class="search">' + ic('search') + '<input id="mf-q" type="search" placeholder="Buscar" autocomplete="off"></label></div>' +
