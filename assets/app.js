@@ -980,9 +980,9 @@
     $('#n-arch').hidden = !n;
     pintaEnviar();
     campoOk($('#n-titulo'));
-    $('#nmodal').classList.add('on'); setTimeout(function () { $('#n-titulo').focus(); }, 30);
+    $('#nmodal').classList.add('on'); bloqueaFondo(); setTimeout(function () { $('#n-titulo').focus(); }, 30);
   }
-  function cerrarNota() { $('#nmodal').classList.remove('on'); nEdit = null; }
+  function cerrarNota() { $('#nmodal').classList.remove('on'); nEdit = null; bloqueaFondo(); }
   function enviarNota(e) {
     e.preventDefault();
     var d = { titulo: $('#n-titulo').value.trim(), texto: $('#n-texto').value, etiqueta: $('#n-etq').value, cliente: $('#n-cli').value };
@@ -1034,6 +1034,30 @@
     return p;
   }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  // La hoja se baja con el dedo desde la barrita o el título; si pasa de cierto punto (o va rápido) se cierra, si no, regresa.
+  function hojaCerrable(modal, cerrar) {
+    var box = modal.querySelector('.mbox'), y0 = null, dy = 0, t0 = 0, pid = null;
+    box.addEventListener('pointerdown', function (e) {
+      if (!matchMedia('(max-width:760px)').matches || e.target.closest('button,input,select,textarea,label')) return;
+      var r = box.getBoundingClientRect(); if (e.clientY - r.top > 64) return;
+      y0 = e.clientY; dy = 0; t0 = Date.now(); pid = e.pointerId; box.style.transition = 'none';
+      try { box.setPointerCapture(pid); } catch (er) { /* sin captura */ }
+    });
+    box.addEventListener('pointermove', function (e) {
+      if (y0 === null || e.pointerId !== pid) return;
+      dy = Math.max(0, e.clientY - y0); box.style.transform = 'translateY(' + dy + 'px)';
+      modal.style.background = 'rgba(26,26,46,' + (0.4 * Math.max(0, 1 - dy / 400)) + ')';
+    });
+    function fin(e) {
+      if (y0 === null || (e && e.pointerId !== pid)) return;
+      var rapido = dy / Math.max(1, Date.now() - t0) > 0.6, cierra = dy > 110 || (rapido && dy > 30); y0 = null;
+      box.style.transition = 'transform .32s cubic-bezier(.32,.9,.3,1)'; modal.style.background = '';
+      if (cierra) { box.style.transform = 'translateY(100%)'; setTimeout(function () { cerrar(); box.style.transition = ''; box.style.transform = ''; }, 240); }
+      else { box.style.transform = ''; setTimeout(function () { box.style.transition = ''; }, 330); }
+    }
+    box.addEventListener('pointerup', fin); box.addEventListener('pointercancel', fin);
+  }
+  hojaCerrable($('#tmodal'), function () { cerrarForm(); });
   function isoMas(n) { var d = parse(hoyIso()); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function menuFecha(ancla, id) {
     var t = tareaPorId(id), lun = (8 - parse(hoyIso()).getDay()) % 7 || 7;
@@ -1081,7 +1105,7 @@
     sel.innerHTML = '<option value="">Sin cliente</option>' + clientesTodos().map(function (c) { return '<option value="' + esc(c.nombre) + '">' + esc(c.nombre) + '</option>'; }).join('');
     sel.value = t ? (t._c ? nombreCliente(t._c) : '') : (cli || '');
     campoOk($('#t-tarea')); marcaRapida();
-    $('#tmodal').classList.add('on'); setTimeout(function () { $('#t-tarea').focus(); }, 30);
+    $('#tmodal').classList.add('on'); bloqueaFondo(); setTimeout(function () { $('#t-tarea').focus(); }, 30);
   }
   function isoMas(n) { var d = parse(hoyIso()); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
   function lunesIso() { var n = (8 - parse(hoyIso()).getDay()) % 7 || 7; return isoMas(n); }
@@ -1091,7 +1115,8 @@
     r.addEventListener('click', function (e) { var b = e.target.closest('[data-f]'); if (!b) return; $('#t-fecha').value = b.dataset.f === 'hoy' ? isoMas(0) : b.dataset.f === 'man' ? isoMas(1) : b.dataset.f === 'lun' ? lunesIso() : ''; marcaRapida(); });
     $('#t-fecha').addEventListener('change', marcaRapida);
   })();
-  function cerrarForm() { $('#tmodal').classList.remove('on'); tEdit = null; }
+  function bloqueaFondo() { document.body.classList.toggle('noscroll', !!(abierto || modalAbierto || $('#tmodal').classList.contains('on') || $('#nmodal').classList.contains('on') || document.body.classList.contains('menu-open'))); }
+  function cerrarForm() { $('#tmodal').classList.remove('on'); tEdit = null; bloqueaFondo(); }
   function enviarForm(e) {
     e.preventDefault();
     var d = { tarea: $('#t-tarea').value.trim(), notas: $('#t-notas').value.trim(), fecha_limite: $('#t-fecha').value, prioridad: $('#t-prio').value, cliente: $('#t-cli').value };
@@ -1317,7 +1342,7 @@
       var ind = document.createElement('div'); ind.className = 'ptr'; ind.setAttribute('aria-hidden', 'true'); ind.innerHTML = ic('refresh'); document.body.appendChild(ind);
       var ty = null, td = 0;
       document.addEventListener('touchstart', function (e) {
-        var libre = window.scrollY <= 0 && !modalAbierto && !abierto && e.touches.length === 1 && !document.body.classList.contains('menu-open') && !$('#pal').classList.contains('on');
+        var libre = window.scrollY <= 0 && !modalAbierto && !abierto && !$('#tmodal').classList.contains('on') && !$('#nmodal').classList.contains('on') && e.touches.length === 1 && !document.body.classList.contains('menu-open') && !$('#pal').classList.contains('on');
         ty = libre ? e.touches[0].clientY : null; td = 0;
       }, { passive: true });
       document.addEventListener('touchmove', function (e) {

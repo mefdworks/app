@@ -501,3 +501,10 @@ a.lk:hover{text-decoration-color:currentColor;background:var(--acc-soft)}
 }
 @media (prefers-reduced-motion:reduce){.row.tk.saliendo{transform:none}.toast .tc,.toast .tk2{stroke-dashoffset:0!important}}
 .toast span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+
+/* Hoja de tarea: el fondo no se mueve y solo los campos se desplazan; se baja desde la barrita o el título */
+.modal{overscroll-behavior:contain;touch-action:none}
+#tmodal .mbox{touch-action:none}
+.modal .tfields,.modal .mbody,.modal .mtext{touch-action:pan-y;overscroll-behavior:contain}
+html:has(body.noscroll){overflow:hidden;overscroll-behavior:none}
+@media (max-width:760px){#tmodal .mh{cursor:grab}#tmodal .mbox.tbox::before{width:44px;height:5px;margin-top:10px}}
