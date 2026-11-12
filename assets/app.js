@@ -297,7 +297,7 @@
     var favs = D.enlaces.filter(function (l) { return norm(l.favorito) === 'si'; }).slice(0, 8);
     var clientesVenc = I.filter(function (x) { return x.venc; }).length;
     var mesN = FIN ? MESL[+FIN.mes.slice(5, 7) - 1] : '';
-    var finKpi = FIN ? '<a class="kpi" href="#fin"><small>Gastado en ' + mesN + '</small><b>' + M(FIN.gasto) + '</b><div class="d">cierras en ~' + M(proyeccion(FIN)) + '</div></a>'
+    var finKpi = FIN ? '<a class="kpi" href="#fin"><small>Gastado en ' + mesN + '</small><b>' + M(FIN.gasto) + '</b><div class="d">cierras en ~' + M(proyeccion(FIN)) + '</div>' + spark(FIN.diario && FIN.diario.mes ? cum(FIN.diario.mes).slice(0, FIN.dia) : []) + '</a>'
       : '<a class="kpi" href="#fin"><small>Gastos del mes</small><b>—</b><div class="d">' + (FIN_ERR ? 'sin datos todavía' : 'cargando…') + '</div></a>';
     return '<div class="view"><div class="head"><div><h1 class="t">' + saludo() + ', <em>Michael</em></h1><p class="sub">' + fechaLarga() + ' · ' + ag.length + ' reunion' + (ag.length === 1 ? '' : 'es') + ' hoy</p></div><button class="btn sm" type="button" data-act="nueva">+ Nueva tarea</button></div>' +
       '<div class="kpis"><a class="kpi late" href="#tareas/venc"><small>Tareas vencidas</small><b>' + venc.length + '</b><div class="d">en ' + clientesVenc + ' cliente' + (clientesVenc === 1 ? '' : 's') + '</div></a>' +
@@ -549,6 +549,13 @@
   function mesCap(ym) { var n = nombreMes(ym); return n.charAt(0).toUpperCase() + n.slice(1) + ' ' + ym.slice(0, 4); }
   function mesMas(ym, n) { var d = new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + n, 1); return d.getFullYear() + '-' + pad2(d.getMonth() + 1); }
   function isoRestar(iso, n) { var d = parse(iso); d.setDate(d.getDate() - n); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  // Línea mínima de una serie (sin ejes), para las tarjetas KPI
+  function spark(v) {
+    var n = v.length; if (n < 2) return '';
+    var mn = Math.min.apply(null, v), mx = Math.max.apply(null, v), r = (mx - mn) || 1;
+    var l = 'M' + v.map(function (x, k) { return (k / (n - 1) * 100).toFixed(2) + ' ' + (27 - (x - mn) / r * 24).toFixed(2); }).join(' L');
+    return '<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="Gasto acumulado del mes"><path class="ar" d="' + l + ' L100 30 L0 30Z"/><path class="ln" d="' + l + '"/></svg>';
+  }
   function cum(a) { var s = 0; return a.map(function (x) { return s += x; }); }
   // Proyección del cierre: lo gastado más lo que se gastó en el resto del mes anterior (así un pago grande al inicio, como el arriendo,
   // no se multiplica por los días que faltan). Sin mes anterior con datos, se extiende el ritmo diario.
@@ -1213,7 +1220,9 @@
     if (!mismo && r.v === 'tareas') { st.tarea = { venc: 'Vencidas', hoy: 'Hoy', sem: 'Semana' }[r.a] || 'Todas'; st.tcliente = ''; }
     if (v === 'trabajo') html = vTrabajo(); else if (v === 'tareas') html = vTareas(); else if (v === 'notas') html = vNotas(); else if (v === 'fin') html = vFin(); else if (v === 'enlaces') html = vEnlaces(); else { v = 'hoy'; html = vHoy(); }
     var main = $('#view'), y = main.scrollTop;
+    var antes = mismo ? Array.prototype.map.call(main.querySelectorAll('.kpi b'), function (x) { return x.textContent; }) : [];
     main.innerHTML = html;
+    if (mismo && !SIN_MOVIMIENTO) main.querySelectorAll('.kpi b').forEach(function (x, i) { if (antes[i] !== undefined && antes[i] !== x.textContent) x.classList.add('cambio'); });
     if (mismo) { var vw = main.querySelector('.view'); if (vw) vw.style.animation = 'none'; main.scrollTop = y; } else { main.scrollTop = 0; window.scrollTo(0, 0); }
     pintarNav(v); bind();
     if (!mismo) entrada(main);

@@ -508,3 +508,13 @@ a.lk:hover{text-decoration-color:currentColor;background:var(--acc-soft)}
 .modal .tfields,.modal .mbody,.modal .mtext{touch-action:pan-y;overscroll-behavior:contain}
 html:has(body.noscroll){overflow:hidden;overscroll-behavior:none}
 @media (max-width:760px){#tmodal .mh{cursor:grab}#tmodal .mbox.tbox::before{width:44px;height:5px;margin-top:10px}}
+
+/* ── Ronda 4: línea de tendencia y cambio de valor en las tarjetas KPI ── */
+.spark{display:block;width:100%;height:30px;margin-top:10px;overflow:visible;animation:revela .8s cubic-bezier(.2,.7,.2,1) .25s both}
+.spark .ln{fill:none;stroke:var(--acc);stroke-width:1.75;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.spark .ar{fill:var(--acc);opacity:.1;stroke:none}
+@keyframes revela{from{clip-path:inset(-3px 100% -3px 0)}to{clip-path:inset(-3px -3px -3px -3px)}}
+.kpi b.cambio{animation:cambio .5s cubic-bezier(.2,.7,.2,1)}
+@keyframes cambio{from{opacity:.2;transform:translateY(6px)}}
+.kpi{transition:border-color .15s,transform .15s cubic-bezier(.2,.7,.2,1)}
+a.kpi:active{transform:scale(.985)}
