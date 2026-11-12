@@ -103,7 +103,8 @@
   function cliente(clave) { return D.clientes.filter(function (x) { return x.cliente === clave; })[0]; }
   function nombreCliente(clave) { var c = cliente(clave); return c ? c.nombre : ''; }
   function perfilDe(clave) { var c = cliente(clave); return c ? norm(c.perfil) : ''; }
-  function tareasAbiertas() { return D.tareas.map(function (t) { t._c = clienteDe(t); return t; }); }
+  // «En pausa» sale del radar (listas, vencidas, hoy, conteos); solo se ve en Tareas → En pausa (conPausa = true).
+  function tareasAbiertas(conPausa) { return D.tareas.filter(function (t) { return conPausa || t.estado !== 'en pausa'; }).map(function (t) { t._c = clienteDe(t); return t; }); }
   function orden(a, b) {
     var pa = { alta: 0, media: 1, baja: 2 };
     var fa = a.fecha_limite || '9999', fb = b.fecha_limite || '9999';
@@ -202,7 +203,7 @@
       : (t.cliente || t.negocio ? '<span class="chip">' + esc(t.cliente || t.negocio) + '</span>' : '');
     return '<div class="row tk" data-id="' + esc(t.id) + '"><button class="chk p-' + esc(t.prioridad || 'media') + '" type="button" data-act="done" aria-label="Marcar como hecha" title="Marcar como hecha"></button><div class="t"><b>' + esc(t.tarea) + '</b>' +
       (t.notas ? '<small>' + enlazar(t.notas) + '</small>' : '') +
-      '<div class="meta">' + fechaBtn(t) + (sinCli ? '' : cl) + (t.estado === 'en curso' ? '<span class="chip acc">En curso</span>' : '') + '</div></div>' +
+      '<div class="meta">' + fechaBtn(t) + (sinCli ? '' : cl) + (t.estado === 'en curso' ? '<span class="chip acc">En curso</span>' : t.estado === 'bloqueada' ? '<span class="chip warn">Bloqueada</span>' : t.estado === 'en pausa' ? '<span class="chip">En pausa</span>' : '') + '</div></div>' +
       (sinCli ? '<button class="grip" type="button" data-grip="fila" aria-label="Mover tarea" title="Arrastrar para ordenar">' + GRIP + '</button>' : '') + '<button class="kebab" type="button" data-act="menu" aria-label="Más acciones" title="Más acciones"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg></button></div>';
   }
   function listaTareas(ts, vacio) {
@@ -501,9 +502,12 @@
 
   // Tareas
   function vTareas() {
-    var h = hoyIso(), ts = tareasAbiertas(), f = st.tarea;
+    var h = hoyIso(), ts = tareasAbiertas(st.tarea === 'En pausa'), f = st.tarea;
+    var nBloq = D.tareas.filter(function (t) { return t.estado === 'bloqueada'; }).length, nPausa = D.tareas.filter(function (t) { return t.estado === 'en pausa'; }).length;
     ts = ts.filter(function (t) {
       if (st.tcliente && t._c !== st.tcliente) return false;
+      if (f === 'Bloqueadas') return t.estado === 'bloqueada';
+      if (f === 'En pausa') return t.estado === 'en pausa';
       if (f === 'Vencidas') return t.fecha_limite && t.fecha_limite < h;
       if (f === 'Hoy') return t.fecha_limite === h;
       if (f === 'Semana') { var n = t.fecha_limite ? dias(t.fecha_limite) : -1; return n >= 0 && n <= 7; }
@@ -514,7 +518,7 @@
     return '<div class="view"><div class="head"><div><h1 class="t">Tareas</h1><p class="sub">' + ts.length + ' ' + (f === 'Todas' ? 'abiertas' : f.toLowerCase()) + '</p></div>' +
       '<div class="seg keep" role="group" aria-label="Vista"><button type="button" data-tvista="clientes" class="' + (porCliente ? 'on' : '') + '">Por cliente</button><button type="button" data-tvista="lista" class="' + (!porCliente ? 'on' : '') + '">Lista</button></div>' +
       '<button class="btn sm" type="button" data-act="nueva">+ Nueva tarea</button></div><div class="tools"><div class="pills">' +
-      ['Todas', 'Vencidas', 'Hoy', 'Semana', 'Sin fecha'].map(function (x) { return '<button class="pill' + (f === x ? ' on' : '') + '" type="button" data-tarea="' + x + '">' + x + '</button>'; }).join('') +
+      ['Todas', 'Vencidas', 'Hoy', 'Semana', 'Sin fecha'].concat(nBloq || f === 'Bloqueadas' ? ['Bloqueadas'] : [], nPausa || f === 'En pausa' ? ['En pausa'] : []).map(function (x) { var n = x === 'Bloqueadas' ? nBloq : x === 'En pausa' ? nPausa : 0; return '<button class="pill' + (f === x ? ' on' : '') + '" type="button" data-tarea="' + x + '">' + x + (n ? ' · ' + n : '') + '</button>'; }).join('') +
       '<select class="pill" id="tcl" aria-label="Cliente"><option value="">Todos los clientes</option>' + clientesTodos().map(function (c) { return '<option value="' + esc(c.cliente) + '"' + (st.tcliente === c.cliente ? ' selected' : '') + '>' + esc(c.nombre) + '</option>'; }).join('') + '</select></div></div>' +
       (porCliente ? tarjetasTareas(ts) : listaTareas(ts, 'No hay tareas con ese filtro.')) + '</div>';
   }
@@ -1150,12 +1154,13 @@
   }
   function menuTarea(ancla, id) {
     var t = tareaPorId(id);
+    var est = function (e, n, aviso) { return { t: n, on: t.estado === e || (e === 'pendiente' && ['en curso', 'bloqueada', 'en pausa'].indexOf(t.estado) < 0), f: function () { cambiar(id, { estado: e }, aviso); } }; };
     var prio = function (p, n) { return { t: n, on: t.prioridad === p, f: function () { cambiar(id, { prioridad: p }, 'Prioridad ' + p); } }; };
     popMenu(ancla, [
       { t: 'Editar…', f: function () { abrirForm(t); } },
       { label: 'Prioridad' }, prio('alta', 'Alta'), prio('media', 'Media'), prio('baja', 'Baja'),
       { sep: 1 },
-      t.estado === 'en curso' ? { t: 'Volver a pendiente', f: function () { cambiar(id, { estado: 'pendiente' }, 'Vuelve a pendiente'); } } : { t: 'Marcar en curso', f: function () { cambiar(id, { estado: 'en curso' }, 'En curso'); } },
+      { label: 'Estado' }, est('pendiente', 'Pendiente', 'Vuelve a pendiente'), est('en curso', 'En curso', 'En curso'), est('bloqueada', 'Bloqueada', 'Bloqueada · sigue en tu lista con su etiqueta'), est('en pausa', 'En pausa (stop)', 'En pausa · la encuentras en Tareas → En pausa'),
       { t: 'Cambiar cliente…', f: function () { menuCliente(ancla, id); } },
       { sep: 1 },
       { t: 'Cancelar tarea', danger: true, f: function () { cambiar(id, { estado: 'cancelada' }, 'Tarea cancelada'); } }
