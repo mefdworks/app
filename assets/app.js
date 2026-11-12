@@ -175,7 +175,7 @@
       ['Portales de clientes', port.filter(function (l) { return g(l) || perfilDe(l.cliente) === 'adcom'; })],
       ['Plataformas de anuncios', E.filter(function (l) { return l.tipo === 'Plataforma' && g(l); })],
       ['Drive, hojas y código', E.filter(function (l) { return (l.tipo === 'Herramienta' || l.tipo === 'Archivo' || l.tipo === 'Código') && g(l); })],
-      ['Dashboards freelance', port.filter(dash).concat(E.filter(function (l) { return l.tipo === 'Personal' && dash(l); }))],
+      ['Dashboards freelance', port.filter(dash), '', E.filter(function (l) { return l.tipo === 'Personal' && dash(l); })[0]],
       ['Personal y herramientas', port.filter(function (l) { return !g(l) && perfilDe(l.cliente) !== 'adcom' && !dash(l); }).concat(E.filter(function (l) { return l.tipo === 'Personal' && !dash(l); }))],
       ['Propuestas', E.filter(function (l) { return l.tipo === 'Propuesta'; }), 'lineas']
     ];
@@ -741,8 +741,9 @@
       var ls = g[1].filter(function (l) { return !q || norm(l.nombre + ' ' + l.detalle + ' ' + nombreCliente(l.cliente) + ' ' + l.url).indexOf(q) >= 0; });
       if (!ls.length) return '';
       vacio = false;
+      var todos = g[3] ? '<a href="' + esc(seguro(g[3].url)) + '" target="_blank" rel="noopener">' + esc(g[3].nombre) + '</a>' : '';
       if (g[2] === 'lineas') return sec(g[0]) + '<div class="card list">' + ls.map(linea).join('') + '</div>';
-      return sec(g[0]) + '<div class="bals">' + ls.map(tile).join('') + '</div>';
+      return sec(g[0], todos) + '<div class="bals">' + ls.map(tile).join('') + '</div>';
     }).join('');
     return '<div class="view"><div class="head"><div><h1 class="t">Enlaces</h1><p class="sub">Los portales de tus clientes, tus plataformas y tus archivos, sin buscar.</p></div></div>' +
       '<div class="tools"><label class="search" style="max-width:420px">' + ic('search') + '<input id="q" type="search" placeholder="Filtrar enlaces" value="' + esc(st.q) + '" autocomplete="off"></label></div>' +
