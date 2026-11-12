@@ -254,6 +254,9 @@
 
   // ── Trabajo: estado de cada cliente ──
   // Ritmo = % del presupuesto gastado entre % del mes transcurrido. Pasa de 1,3 cuando gasta mucho más rápido de lo previsto.
+  // Alertas de pauta que deja `media_bridge alertas` cada mañana en la hoja Alertas del agente; `cliente` es la clave de la bitácora.
+  function alertasDe(c) { var k = c.bitacora || c.cliente; return (D.alertas || []).filter(function (a) { return a.cliente === k; }); }
+  function chipAlertas(x) { return x.al.length ? '<span class="chip ' + (x.nAc ? 'crit' : 'warn') + '">' + x.al.length + ' alerta' + (x.al.length > 1 ? 's' : '') + '</span>' : ''; }
   function info(c) {
     var h = hoyIso();
     var ts = tareasAbiertas().filter(function (t) { return t._c === c.cliente; });
@@ -264,9 +267,10 @@
     var alto = !!(ritmo && ritmo > 1.3 && inv.pct - inv.esperado >= 7);
     var atras = inv && inv.datos_hasta && dias(inv.datos_hasta) < -3 ? 1 : 0;
     var verV = T.ver_venc || 0;
-    var e = (venc >= 2 || alto) ? 'crit' : (venc || verV || atras) ? 'warn' : (!inv || inv.presupuesto_n == null) ? 'info' : 'ok';
-    var u = venc * 4 + Math.min(verV, 6) * 0.5 + (alto ? 4 : 0) + atras;
-    return { c: c, ts: ts, venc: venc, T: T, inv: inv, ritmo: ritmo, alto: alto, atras: atras, ver: T.ver || 0, verV: verV, e: e, u: u };
+    var al = alertasDe(c), nAc = al.filter(function (a) { return a.nivel === 'crit'; }).length;
+    var e = (venc >= 2 || alto || nAc) ? 'crit' : (venc || verV || atras || al.length) ? 'warn' : (!inv || inv.presupuesto_n == null) ? 'info' : 'ok';
+    var u = venc * 4 + Math.min(verV, 6) * 0.5 + (alto ? 4 : 0) + atras + nAc * 4 + (al.length - nAc) * 1.5;
+    return { c: c, ts: ts, venc: venc, T: T, inv: inv, ritmo: ritmo, alto: alto, atras: atras, ver: T.ver || 0, verV: verV, e: e, u: u, al: al, nAc: nAc };
   }
   function infos() { return clientesTodos().map(info).sort(function (a, b) { return b.u - a.u || a.c.nombre.localeCompare(b.c.nombre); }); }
   var ETQ = { crit: 'Atender', warn: 'Revisar', ok: 'Al día', info: 'Sin presupuesto' };
@@ -283,6 +287,10 @@
     I.forEach(function (x) {
       if (x.venc) atn.push({ t: x.venc + ' tarea' + (x.venc > 1 ? 's' : '') + ' vencida' + (x.venc > 1 ? 's' : '') + ' en ' + x.c.nombre, s: 'Trabajo · ' + x.c.perfil, i: 'alert', c: 'crit', k: x.c.cliente, w: x.venc * 4 });
       if (x.alto) atn.push({ t: x.c.nombre + ' gasta más rápido de lo previsto', s: x.inv.gasto + ' de ' + x.inv.presupuesto + ' · va ' + x.inv.pct + '% y el mes ' + x.inv.esperado + '%', i: 'chart', c: 'warn', k: x.c.cliente, w: 3 });
+      x.al.forEach(function (a) {
+        if (a.regla === 'ritmo' && x.alto) return;   // ya sale como «gasta más rápido»
+        atn.push({ t: x.c.nombre + ': ' + a.texto, s: 'Alerta de pauta · Trabajo', i: 'alert', c: a.nivel === 'crit' ? 'crit' : 'warn', k: x.c.cliente, w: a.nivel === 'crit' ? 5 : 2 });
+      });
       if (x.atras) atn.push({ t: 'Datos atrasados en ' + x.c.nombre, s: 'Hojas con datos hasta el ' + corta(x.inv.datos_hasta), i: 'refresh', c: 'warn', k: x.c.cliente, w: 1.5 });
     });
     var sinCliente = venc.filter(function (t) { return !t._c; }).length;
@@ -350,7 +358,7 @@
       var r = inv && inv.res ? inv.res : null;
       var res = r ? '<div class="res"><b>' + esc(r.valor) + ' ' + esc(r.nombre.replace(/ \(.*\)/, '').toLowerCase()) + '</b><small>' + (r.costo && r.costo !== '-' ? esc(r.costo) : '') + '</small></div>' : '<div class="res"><small>—</small></div>';
       return '<button class="cl" type="button" data-open="' + esc(c.cliente) + '"><div class="cn">' + avatar(c, x.e) + '<div style="min-width:0"><b>' + esc(c.nombre) + '</b><small>' + esc(c.perfil) + '</small></div></div>' + pace +
-        '<div>' + (x.venc ? '<span class="chip crit">' + x.venc + ' venc.</span>' : '<span class="chip">0 venc.</span>') + '</div>' +
+        '<div>' + (x.venc ? '<span class="chip crit">' + x.venc + ' venc.</span>' : '<span class="chip">0 venc.</span>') + chipAlertas(x) + '</div>' +
         '<div>' + (x.verV ? '<span class="chip warn">' + x.verV + ' verif.</span>' : '<span class="chip">—</span>') + '</div>' + res + ic('chev', 'chev') + '</button>';
     }).join('');
   }
@@ -360,7 +368,7 @@
       return '<button class="cc" type="button" data-open="' + esc(c.cliente) + '"><div class="cn">' + avatar(c, x.e) + '<div><b>' + esc(c.nombre) + '</b><small>' + esc(c.perfil) + '</small></div><span class="chip ' + ETQ_CL[x.e] + '" style="margin-left:auto">' + ETQ[x.e] + '</span></div>' +
         (inv && inv.pct != null ? '<div class="bar"><i style="width:' + Math.min(100, inv.pct * 2.5) + '%"></i><span class="mk" style="left:' + Math.min(100, (inv.esperado || 0) * 2.5) + '%"></span></div>' : '') +
         '<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--ink2)"><span>' + esc(inv ? inv.gasto + (inv.presupuesto ? ' de ' + inv.presupuesto : '') : '—') + '</span><span>' + (inv && inv.res ? esc(inv.res.valor + ' ' + inv.res.nombre.replace(/ \(.*\)/, '').toLowerCase()) : '') + '</span></div>' +
-        '<div style="display:flex;gap:6px;flex-wrap:wrap">' + (x.venc ? '<span class="chip crit">' + x.venc + ' vencida' + (x.venc > 1 ? 's' : '') + '</span>' : '') + (x.verV ? '<span class="chip warn">' + x.verV + ' por verificar</span>' : '') + (!x.venc && !x.verV ? '<span class="chip good">Sin pendientes</span>' : '') + '</div></button>';
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">' + (x.venc ? '<span class="chip crit">' + x.venc + ' vencida' + (x.venc > 1 ? 's' : '') + '</span>' : '') + (x.verV ? '<span class="chip warn">' + x.verV + ' por verificar</span>' : '') + chipAlertas(x) + (!x.venc && !x.verV && !x.al.length ? '<span class="chip good">Sin pendientes</span>' : '') + '</div></button>';
     }).join('');
   }
   function listaFiltrada() {
@@ -779,6 +787,9 @@
       '<div><small>Costo por resultado</small><b class="num">' + esc(r && r.costo && r.costo !== '-' ? r.costo : '—') + '</b><span class="d">' + (inv && inv.datos_hasta ? 'datos hasta ' + esc(corta(inv.datos_hasta)) : '') + '</span></div></div>') +
       (portal ? '<a class="hero" href="' + esc(seguro(portal.url)) + '" target="_blank" rel="noopener">' + tileIco(portal) + '<span class="tl"><b>Portal de ' + esc(c.nombre) + '</b><small>' + esc(host(portal.url)) + '</small></span>' + ic('arrow', 'chev') + '</a>' : '') +
       (c.resumen ? '<div class="dsec"><h2 class="s">Resumen</h2><div class="card facts">' + esc(c.resumen) + (reglas.length ? '<ul>' + reglas.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>' : '') + '</div></div>' : '') +
+      (x.al.length ? '<div class="dsec"><h2 class="s">Alertas de pauta · ' + x.al.length + '</h2><div class="card list">' + x.al.map(function (a) {
+        return '<div class="row"><span class="chip ' + (a.nivel === 'crit' ? 'crit' : 'warn') + '" style="flex:none">' + (a.nivel === 'crit' ? 'Actuar' : 'Revisar') + '</span><div class="t"><b style="font-weight:500">' + esc(a.texto) + '</b><small>' + esc(a.fecha ? corta(String(a.fecha).slice(0, 10)) : '') + '</small></div></div>';
+      }).join('') + '</div></div>' : '') +
       '<div class="dsec"><div class="sec" style="margin:0 0 8px"><h2 class="s">Tareas · ' + x.ts.length + '</h2><button class="lnk" type="button" data-act="nueva" data-cliente="' + esc(c.nombre) + '">+ Nueva</button></div>' + listaTareas(x.ts.sort(orden), 'Sin tareas abiertas.') + '</div>' +
       (esApoyo(c) ? '' : '<div class="dsec"><h2 class="s">Por verificar</h2><div class="card" id="dv">' + esqueleto('texto') + '</div></div>' +
       '<div class="dsec"><h2 class="s">Bitácora</h2><button class="card btnbit" type="button" id="dbit">' + ic('book') + '<span><b>Leer la bitácora de ' + esc(c.nombre) + '</b><small>Se abre en una ventana</small></span>' + ic('arrow', 'chev') + '</button></div>') +
