@@ -83,7 +83,7 @@
   // Solo se ven el portal de cada cliente, lo personal y los accesos generales; los enlaces por cliente de la primera versión (tableros, copys, cuentas…) ya no van.
   function enlaceVisible(l) {
     if (l.tipo === 'Archivado') return false;
-    if (l.tipo === 'Portal' || l.tipo === 'Personal') return true;
+    if (l.tipo === 'Portal' || l.tipo === 'Personal' || l.tipo === 'Propuesta') return true;
     return l.cliente === 'general' && ['Plataforma', 'Herramienta', 'Archivo', 'Código'].indexOf(l.tipo) >= 0;
   }
   function visibles(d) { if (d && d.enlaces) d.enlaces = d.enlaces.filter(enlaceVisible); return d; }
@@ -162,6 +162,10 @@
     return '<a class="tile2" href="' + esc(seguro(l.url)) + '" target="_blank" rel="noopener">' + tileIco(l) +
       '<span class="tl"><b>' + esc(l.nombre) + '</b><small>' + esc(apoyo) + '</small></span></a>';
   }
+  // Enlace en una línea (propuestas): nombre, detalle y flecha, sin tarjeta propia.
+  function linea(l) {
+    return '<a class="row" href="' + esc(seguro(l.url)) + '" target="_blank" rel="noopener"><span class="t"><b>' + esc(l.nombre) + '</b><small>' + esc(l.detalle || host(l.url)) + '</small></span>' + ic('arrow', 'chev') + '</a>';
+  }
   function grupos() {
     var E = D.enlaces, g = function (l) { return l.cliente === 'general'; };
     var port = E.filter(function (l) { return l.tipo === 'Portal'; });
@@ -172,7 +176,8 @@
       ['Plataformas de anuncios', E.filter(function (l) { return l.tipo === 'Plataforma' && g(l); })],
       ['Drive, hojas y código', E.filter(function (l) { return (l.tipo === 'Herramienta' || l.tipo === 'Archivo' || l.tipo === 'Código') && g(l); })],
       ['Dashboards freelance', port.filter(dash).concat(E.filter(function (l) { return l.tipo === 'Personal' && dash(l); }))],
-      ['Personal y herramientas', port.filter(function (l) { return !g(l) && perfilDe(l.cliente) !== 'adcom' && !dash(l); }).concat(E.filter(function (l) { return l.tipo === 'Personal' && !dash(l); }))]
+      ['Personal y herramientas', port.filter(function (l) { return !g(l) && perfilDe(l.cliente) !== 'adcom' && !dash(l); }).concat(E.filter(function (l) { return l.tipo === 'Personal' && !dash(l); }))],
+      ['Propuestas', E.filter(function (l) { return l.tipo === 'Propuesta'; }), 'lineas']
     ];
   }
 
@@ -736,6 +741,7 @@
       var ls = g[1].filter(function (l) { return !q || norm(l.nombre + ' ' + l.detalle + ' ' + nombreCliente(l.cliente) + ' ' + l.url).indexOf(q) >= 0; });
       if (!ls.length) return '';
       vacio = false;
+      if (g[2] === 'lineas') return sec(g[0]) + '<div class="card list">' + ls.map(linea).join('') + '</div>';
       return sec(g[0]) + '<div class="bals">' + ls.map(tile).join('') + '</div>';
     }).join('');
     return '<div class="view"><div class="head"><div><h1 class="t">Enlaces</h1><p class="sub">Los portales de tus clientes, tus plataformas y tus archivos, sin buscar.</p></div></div>' +
