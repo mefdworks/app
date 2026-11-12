@@ -99,6 +99,7 @@
     if (!c) for (j = 0; j < lista.length; j++) { if (norm(lista[j].cliente) === n) return lista[j].cliente; }
     return '';
   }
+  function esApoyo(c) { return !!c && c.tipo === 'apoyo'; }
   function cliente(clave) { return D.clientes.filter(function (x) { return x.cliente === clave; })[0]; }
   function nombreCliente(clave) { var c = cliente(clave); return c ? c.nombre : ''; }
   function perfilDe(clave) { var c = cliente(clave); return c ? norm(c.perfil) : ''; }
@@ -379,7 +380,7 @@
     var aviso = TRAB_ERR ? '<div class="banner">' + esc(/desconocida/.test(TRAB_ERR) ? 'Falta subir y redesplegar el script del agente (acción «trabajo»): sin eso no veo la inversión ni lo por verificar.' : 'No pude leer la inversión: ' + TRAB_ERR) + '</div>' : '';
     var pie = TRAB && TRAB.actualizado ? '<div class="foot">Inversión leída de las bitácoras · ' + esc(TRAB.actualizado.slice(11, 16)) + '</div>' : '';
     return '<div class="view">' + aviso + '<div class="head"><div><h1 class="t">Trabajo</h1><p class="sub">' + todos.length + ' clientes ordenados por urgencia · ' + nAt + ' piden atención · la marca de cada barra es dónde debería ir el mes</p></div>' +
-      '<div class="seg" role="group" aria-label="Vista"><button type="button" data-vista="lista" class="' + (st.vista === 'lista' ? 'on' : '') + '">Lista</button><button type="button" data-vista="tarjetas" class="' + (st.vista === 'tarjetas' ? 'on' : '') + '">Tarjetas</button></div></div>' +
+      '<div class="seg" role="group" aria-label="Vista"><button type="button" data-vista="lista" class="' + (st.vista === 'lista' ? 'on' : '') + '">Lista</button><button type="button" data-vista="tarjetas" class="' + (st.vista === 'tarjetas' ? 'on' : '') + '">Tarjetas</button></div><button class="btn sm" type="button" data-act="ncliente">+ Agregar cliente</button></div>' +
       '<div class="tools"><label class="search">' + ic('search') + '<input id="q" type="search" placeholder="Buscar cliente" value="' + esc(st.q) + '" autocomplete="off"></label><div class="pills">' +
       ['Todos', 'Con alertas', 'Adcom', 'Freelance', 'Personal'].map(function (f) { return '<button class="pill' + (st.filtro === f ? ' on' : '') + '" type="button" data-f="' + f + '">' + f + '</button>'; }).join('') + '</div></div>' + cuerpo + pie + '</div>';
   }
@@ -512,7 +513,8 @@
 
   // Notas
   var ETQ_NOTA = ['reunión', 'idea', 'pendiente', 'general'];
-  function clavesBit() { return clientesTodos().map(function (c) { return { k: c.bitacora || c.cliente, n: c.nombre }; }); }
+  function clavesBit() { return clientesTodos().map(function (c) { return { k: c.bitacora || c.cliente, n: c.nombre, apoyo: esApoyo(c) }; }); }
+  function sinBitacora(k) { return clavesBit().some(function (x) { return x.k === k && x.apoyo; }); }
   function nombreBit(k) { var f = clavesBit().filter(function (x) { return x.k === k; })[0]; return f ? f.n : k; }
   function sinApostrofo(x) { return String(x || '').replace(/^'(?=[=+])/, ''); }
   function vNotas() {
@@ -771,19 +773,21 @@
     var r = inv && inv.res ? inv.res : null;
     $('#drawer').innerHTML = '<div class="dh">' + avatar(c, x.e) + '<div><h3>' + esc(c.nombre) + '</h3><span class="chip ' + ETQ_CL[x.e] + '">' + esc(c.perfil) + ' · ' + ETQ[x.e] + '</span></div><button class="pill" type="button" id="dgo" style="margin-left:auto">Ir a Trabajo</button><button class="x" type="button" id="dx" aria-label="Cerrar" style="margin-left:0">' + ic('x') + '</button></div>' +
       '<div class="db">' +
-      '<div class="dk"><div><small>Inversión del mes</small><b class="num">' + esc(inv && inv.gasto ? inv.gasto : '—') + '</b><span class="d">' + (inv && inv.presupuesto ? 'de ' + esc(inv.presupuesto) + (inv.pct != null ? ' · ' + inv.pct + '%' : '') : 'sin presupuesto') + '</span>' +
+      (esApoyo(c) ? '' : '<div class="dk"><div><small>Inversión del mes</small><b class="num">' + esc(inv && inv.gasto ? inv.gasto : '—') + '</b><span class="d">' + (inv && inv.presupuesto ? 'de ' + esc(inv.presupuesto) + (inv.pct != null ? ' · ' + inv.pct + '%' : '') : 'sin presupuesto') + '</span>' +
         (inv && inv.aparte && inv.aparte.length ? '<span class="d">Aparte: ' + inv.aparte.map(function (a) { return esc(a.motivo) + ' ' + esc(a.total); }).join(' · ') + '</span>' : '') + '</div>' +
       '<div><small>' + esc(r ? r.nombre.replace(/ \(.*\)/, '') : 'Resultado') + '</small><b class="num">' + esc(r ? r.valor : '—') + '</b><span class="d">' + (r && r.meta && r.meta !== '-' ? 'meta ' + esc(r.meta) + (r.pct && r.pct !== '-' ? ' · ' + esc(r.pct) : '') : '') + '</span></div>' +
-      '<div><small>Costo por resultado</small><b class="num">' + esc(r && r.costo && r.costo !== '-' ? r.costo : '—') + '</b><span class="d">' + (inv && inv.datos_hasta ? 'datos hasta ' + esc(corta(inv.datos_hasta)) : '') + '</span></div></div>' +
+      '<div><small>Costo por resultado</small><b class="num">' + esc(r && r.costo && r.costo !== '-' ? r.costo : '—') + '</b><span class="d">' + (inv && inv.datos_hasta ? 'datos hasta ' + esc(corta(inv.datos_hasta)) : '') + '</span></div></div>') +
       (portal ? '<a class="hero" href="' + esc(seguro(portal.url)) + '" target="_blank" rel="noopener">' + tileIco(portal) + '<span class="tl"><b>Portal de ' + esc(c.nombre) + '</b><small>' + esc(host(portal.url)) + '</small></span>' + ic('arrow', 'chev') + '</a>' : '') +
       (c.resumen ? '<div class="dsec"><h2 class="s">Resumen</h2><div class="card facts">' + esc(c.resumen) + (reglas.length ? '<ul>' + reglas.map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ul>' : '') + '</div></div>' : '') +
       '<div class="dsec"><div class="sec" style="margin:0 0 8px"><h2 class="s">Tareas · ' + x.ts.length + '</h2><button class="lnk" type="button" data-act="nueva" data-cliente="' + esc(c.nombre) + '">+ Nueva</button></div>' + listaTareas(x.ts.sort(orden), 'Sin tareas abiertas.') + '</div>' +
-      '<div class="dsec"><h2 class="s">Por verificar</h2><div class="card" id="dv">' + esqueleto('texto') + '</div></div>' +
-      '<div class="dsec"><h2 class="s">Bitácora</h2><button class="card btnbit" type="button" id="dbit">' + ic('book') + '<span><b>Leer la bitácora de ' + esc(c.nombre) + '</b><small>Se abre en una ventana</small></span>' + ic('arrow', 'chev') + '</button></div>' +
+      (esApoyo(c) ? '' : '<div class="dsec"><h2 class="s">Por verificar</h2><div class="card" id="dv">' + esqueleto('texto') + '</div></div>' +
+      '<div class="dsec"><h2 class="s">Bitácora</h2><button class="card btnbit" type="button" id="dbit">' + ic('book') + '<span><b>Leer la bitácora de ' + esc(c.nombre) + '</b><small>Se abre en una ventana</small></span>' + ic('arrow', 'chev') + '</button></div>') +
       (resto.length ? '<div class="dsec"><h2 class="s">Asociado · ' + resto.length + '</h2><div class="bals">' + resto.map(tile).join('') + '</div></div>' : '') +
+      '<div class="dsec"><button class="lnk" type="button" id="darch">Quitar a ' + esc(c.nombre) + ' del panel</button></div>' +
       '</div>';
     $('#drawer').classList.add('on'); $('#scrim').classList.add('on'); document.body.classList.add('noscroll', 'dopen');
     $('#dx').onclick = cerrar;
+    $('#darch').onclick = function () { archivarCliente(clave); };
     $('#dgo').onclick = function () { cerrar(); location.hash = '#trabajo'; };
     // Por verificar y bitácora: se leen del Drive solo al abrir.
     var llenarVerif = function () {
@@ -791,6 +795,7 @@
       var v = (VERIF.clientes || []).filter(function (z) { return z.cliente === (c.bitacora || c.cliente); })[0];
       el.innerHTML = v ? '<div class="md" style="padding:14px">' + md(v.texto).replace(/^<div class="md">|<\/div>$/g, '') + '</div>' : '<div class="empty">Esta bitácora no tiene pendientes por verificar.</div>';
     };
+    if (esApoyo(c)) return;
     if (VERIF) llenarVerif(); else api('verificar').then(function (j) { VERIF = j; llenarVerif(); }).catch(function (e) { var el = $('#dv'); if (el) el.innerHTML = '<div class="empty">No pude leerlo: ' + esc(e.message) + '</div>'; });
     $('#dbit').onclick = function () { abrirBitacora(clave); };
   }
@@ -980,7 +985,7 @@
   function guardarNotas() { lsSet('mp_n', JSON.stringify(NOTAS)); }
   function pintaEnviar() {
     var cli = $('#n-cli').value, enviada = nEdit && nEdit.bitacora === 'si', fila = $('#n-envf');
-    fila.hidden = !cli;
+    fila.hidden = !cli || sinBitacora(cli);
     $('#n-env').disabled = !!enviada;
     if (enviada) { $('#n-env').checked = true; $('#n-envt').textContent = 'Ya está en la bitácora. Si la editas aquí, la bitácora conserva la versión original.'; }
     else $('#n-envt').textContent = 'Mandar también a la bitácora de ' + nombreBit(cli);
@@ -1004,7 +1009,7 @@
     e.preventDefault();
     var d = { titulo: $('#n-titulo').value.trim(), texto: $('#n-texto').value, etiqueta: $('#n-etq').value, cliente: $('#n-cli').value };
     if (!exige($('#n-titulo'), 'Ponle un título a la nota.')) return;
-    var enviar = !!d.cliente && $('#n-env').checked && !(nEdit && nEdit.bitacora === 'si');
+    var enviar = !!d.cliente && !sinBitacora(d.cliente) && $('#n-env').checked && !(nEdit && nEdit.bitacora === 'si');
     var btn = $('#n-ok'); btn.disabled = true; btn.textContent = 'Guardando…';
     var p;
     if (!nEdit) p = escribirNota('crear', Object.assign({ enviar: enviar }, d));
@@ -1075,6 +1080,40 @@
     box.addEventListener('pointerup', fin); box.addEventListener('pointercancel', fin);
   }
   hojaCerrable($('#tmodal'), function () { cerrarForm(); });
+  // Cliente nuevo o archivado desde el panel. Los de apoyo no tienen bitácora ni pauta: solo tareas y notas.
+  var cListo = null;
+  function abrirCliente(listo) {
+    cListo = listo || null;
+    $('#c-nombre').value = ''; $('#c-alias').value = ''; $('#c-perfil').value = 'Freelance';
+    campoOk($('#c-nombre'));
+    $('#cmodal').classList.add('on'); bloqueaFondo(); setTimeout(function () { $('#c-nombre').focus(); }, 30);
+  }
+  function cerrarCliente() { $('#cmodal').classList.remove('on'); cListo = null; bloqueaFondo(); }
+  function enviarCliente(e) {
+    e.preventDefault();
+    if (!exige($('#c-nombre'), 'Escribe el nombre del cliente.')) return;
+    var btn = $('#c-ok'); btn.disabled = true; btn.textContent = 'Agregando…';
+    escribir('cliente_crear', { nombre: $('#c-nombre').value.trim(), perfil: $('#c-perfil').value, alias: $('#c-alias').value.trim() })
+      .then(function (j) {
+        var k = j.cliente, ya = cliente(k.cliente);
+        if (!ya) D.clientes.push(Object.assign({ cliente: k.cliente, nombre: k.nombre, perfil: k.perfil, alias: k.alias || '', orden: 900, tipo: k.tipo || 'apoyo', resumen: '', reglas: '', cuentas: '', bitacora: '' }, k));
+        guardarCache();
+        var cb = cListo; cerrarCliente(); render(true);
+        avisar(k.reactivado ? k.nombre + ' vuelve a estar activo' : 'Cliente ' + k.nombre + ' agregado');
+        if (cb) cb(k);
+      })
+      .catch(function (err) { avisar('No pude agregar el cliente: ' + err.message); })
+      .then(function () { btn.disabled = false; btn.textContent = 'Agregar'; });
+  }
+  function archivarCliente(clave) {
+    var c = cliente(clave); if (!c) return;
+    var n = tareasAbiertas().filter(function (t) { return t._c === clave; }).length;
+    if (!window.confirm('¿Quitar a ' + c.nombre + ' del panel?' + (n ? '\nTiene ' + n + ' tarea' + (n === 1 ? '' : 's') + ' abierta' + (n === 1 ? '' : 's') + ': siguen existiendo, pero quedan sin ficha.' : '') + '\nNo se borra nada: se puede volver a agregar con el mismo nombre.')) return;
+    escribir('cliente_archivar', { cliente: clave }).then(function () {
+      D.clientes = D.clientes.filter(function (x) { return x.cliente !== clave; });
+      guardarCache(); cerrar(); render(true); avisar(c.nombre + ' quitado del panel');
+    }).catch(function (err) { avisar('No pude quitarlo: ' + err.message); });
+  }
   function isoMas(n) { var d = parse(hoyIso()); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function menuFecha(ancla, id) {
     var t = tareaPorId(id), lun = (8 - parse(hoyIso()).getDay()) % 7 || 7;
@@ -1095,6 +1134,7 @@
     var t = tareaPorId(id), actual = t._c ? nombreCliente(t._c) : '';
     var items = [{ label: 'Cliente' }, { t: 'Sin cliente', on: !actual, f: function () { cambiar(id, { cliente: '' }, 'Sin cliente'); } }];
     clientesTodos().forEach(function (c) { items.push({ t: c.nombre + ' · ' + c.perfil, on: c.nombre === actual, f: function () { cambiar(id, { cliente: c.nombre }, 'Asignada a ' + c.nombre); } }); });
+    items.push({ sep: 1 }, { t: '＋ Nuevo cliente…', f: function () { abrirCliente(function (k) { cambiar(id, { cliente: k.nombre }, 'Asignada a ' + k.nombre); }); } });
     popMenu(ancla, items);
   }
   function menuTarea(ancla, id) {
@@ -1119,8 +1159,9 @@
     $('#t-tarea').value = t ? t.tarea : ''; $('#t-notas').value = t ? (t.notas || '') : '';
     $('#t-fecha').value = t ? (t.fecha_limite || '') : ''; $('#t-prio').value = t ? (t.prioridad || 'media') : 'media';
     var sel = $('#t-cli');
-    sel.innerHTML = '<option value="">Sin cliente</option>' + clientesTodos().map(function (c) { return '<option value="' + esc(c.nombre) + '">' + esc(c.nombre) + '</option>'; }).join('');
+    sel.innerHTML = '<option value="">Sin cliente</option>' + clientesTodos().map(function (c) { return '<option value="' + esc(c.nombre) + '">' + esc(c.nombre) + '</option>'; }).join('') + '<option value="__nuevo">＋ Nuevo cliente…</option>';
     sel.value = t ? (t._c ? nombreCliente(t._c) : '') : (cli || '');
+    sel.dataset.previo = sel.value;
     campoOk($('#t-tarea')); marcaRapida();
     $('#tmodal').classList.add('on'); bloqueaFondo(); setTimeout(function () { $('#t-tarea').focus(); }, 30);
   }
@@ -1132,7 +1173,7 @@
     r.addEventListener('click', function (e) { var b = e.target.closest('[data-f]'); if (!b) return; $('#t-fecha').value = b.dataset.f === 'hoy' ? isoMas(0) : b.dataset.f === 'man' ? isoMas(1) : b.dataset.f === 'lun' ? lunesIso() : ''; marcaRapida(); });
     $('#t-fecha').addEventListener('change', marcaRapida);
   })();
-  function bloqueaFondo() { document.body.classList.toggle('noscroll', !!(abierto || modalAbierto || $('#tmodal').classList.contains('on') || $('#nmodal').classList.contains('on') || document.body.classList.contains('menu-open'))); }
+  function bloqueaFondo() { document.body.classList.toggle('noscroll', !!(abierto || modalAbierto || $('#tmodal').classList.contains('on') || $('#nmodal').classList.contains('on') || $('#cmodal').classList.contains('on') || document.body.classList.contains('menu-open'))); }
   function cerrarForm() { $('#tmodal').classList.remove('on'); tEdit = null; bloqueaFondo(); }
   function enviarForm(e) {
     e.preventDefault();
@@ -1411,6 +1452,19 @@
     $('#nx').onclick = cerrarNota; $('#nc').onclick = cerrarNota; $('#nform').onsubmit = enviarNota; $('#n-arch').onclick = archivarNota; $('#n-cli').onchange = pintaEnviar;
     $('#nmodal').onclick = function (e) { if (e.target === this) cerrarNota(); };
     $('#tx').onclick = cerrarForm; $('#tc').onclick = cerrarForm; $('#tform').onsubmit = enviarForm;
+    $('#cx').onclick = cerrarCliente; $('#cc').onclick = cerrarCliente; $('#cform').onsubmit = enviarCliente;
+    $('#cmodal').onclick = function (e) { if (e.target === this) cerrarCliente(); };
+    campoObliga($('#c-nombre'), 'Escribe el nombre del cliente.');
+    $('#t-cli').onchange = function () {
+      var sel = this;
+      if (sel.value !== '__nuevo') { sel.dataset.previo = sel.value; return; }
+      var previo = sel.dataset.previo || '';
+      sel.value = previo;
+      abrirCliente(function (k) {
+        var o = document.createElement('option'); o.value = k.nombre; o.textContent = k.nombre;
+        sel.insertBefore(o, sel.querySelector('option[value="__nuevo"]')); sel.value = k.nombre; sel.dataset.previo = k.nombre;
+      });
+    };
     $('#tmodal').onclick = function (e) { if (e.target === this) cerrarForm(); };
     // Un solo manejador para fichas de cliente y acciones de tareas (sirve también para lo que se dibuja después, como el panel lateral).
     document.addEventListener('click', function (e) {
@@ -1421,6 +1475,7 @@
       if (a.dataset.open) { abrir(a.dataset.open); return; }
       var act = a.dataset.act, fila = a.closest('.tk'), id = fila ? fila.dataset.id : '';
       if (act === 'nueva') return abrirForm(null, a.dataset.cliente || '');
+      if (act === 'ncliente') return abrirCliente();
       if (act === 'nnueva') return abrirNota(null, st.ncliente && st.ncliente !== '__sin' ? st.ncliente : '');
       if (act === 'cat') { var cd = a.parentNode.querySelector('.cd'); cd.hidden = !cd.hidden; a.setAttribute('aria-expanded', String(!cd.hidden)); return; }
       if (act === 'limpiarc') { st.q = ''; st.filtro = 'Todos'; return render(true); }
@@ -1436,7 +1491,7 @@
     $('#modal').onclick = function (e) { if (e.target === this) cerrarBitacora(); };
     document.addEventListener('keydown', function (e) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && D) { e.preventDefault(); palAbrir(!$('#pal').classList.contains('on')); return; }
-      if (e.key === 'Escape') { if (document.body.classList.contains('menu-open')) { menuLateral(false); return; } if ($('#pal').classList.contains('on')) palAbrir(false); else if ($('#pop')) cerrarPop(); else if ($('#nmodal').classList.contains('on')) cerrarNota(); else if ($('#tmodal').classList.contains('on')) cerrarForm(); else if (modalAbierto) cerrarBitacora(); else if (abierto) cerrar(); return; }
+      if (e.key === 'Escape') { if (document.body.classList.contains('menu-open')) { menuLateral(false); return; } if ($('#pal').classList.contains('on')) palAbrir(false); else if ($('#pop')) cerrarPop(); else if ($('#cmodal').classList.contains('on')) cerrarCliente(); else if ($('#nmodal').classList.contains('on')) cerrarNota(); else if ($('#tmodal').classList.contains('on')) cerrarForm(); else if (modalAbierto) cerrarBitacora(); else if (abierto) cerrar(); return; }
       if (!$('#pal').classList.contains('on')) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); palSel = Math.min(palItems.length - 1, palSel + 1); palRender(); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); palSel = Math.max(0, palSel - 1); palRender(); }

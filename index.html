@@ -78,6 +78,16 @@
   </div>
   <footer class="tfoot"><button class="pill" id="tc" type="button">Cancelar</button><button class="btn sm" type="submit">Guardar</button></footer>
 </form></div>
+<div class="modal" id="cmodal"><form class="mbox tbox" id="cform" role="dialog" aria-modal="true" aria-labelledby="ct" autocomplete="off" novalidate>
+  <header class="mh"><h3 id="ct">Nuevo cliente</h3><button class="x" id="cx" type="button" aria-label="Cerrar">&times;</button></header>
+  <div class="tfields">
+    <div><label for="c-nombre">Nombre</label><input class="fi" id="c-nombre" type="text" maxlength="60" placeholder="Ej. Clínica Norte" required></div>
+    <div><label for="c-perfil">Perfil</label><select class="fi" id="c-perfil"><option value="Adcom">Adcom</option><option value="Freelance">Freelance</option><option value="Personal">Personal</option></select></div>
+    <div><label for="c-alias">Otros nombres</label><input class="fi" id="c-alias" type="text" maxlength="200" placeholder="Opcional, separados por coma"></div>
+    <p class="sub" style="margin:0">Cliente de apoyo: sin bitácora ni inversión, solo tareas y notas.</p>
+  </div>
+  <footer class="tfoot"><button class="pill" id="cc" type="button">Cancelar</button><button class="btn sm" id="c-ok" type="submit">Agregar</button></footer>
+</form></div>
 <div class="modal" id="nmodal"><form class="mbox tbox" id="nform" role="dialog" aria-modal="true" aria-labelledby="nt" autocomplete="off" novalidate>
   <header class="mh"><h3 id="nt">Nueva nota</h3><button class="x" id="nx" type="button" aria-label="Cerrar">&times;</button></header>
   <div class="tfields">
