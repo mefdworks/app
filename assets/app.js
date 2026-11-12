@@ -165,11 +165,14 @@
   function grupos() {
     var E = D.enlaces, g = function (l) { return l.cliente === 'general'; };
     var port = E.filter(function (l) { return l.tipo === 'Portal'; });
+    // Dashboards de pauta freelance (repo dashboard): portales de clientes no Adcom y el índice general.
+    var dash = function (l) { return /\/dashboard\//.test(l.url) && (l.tipo === 'Personal' ? g(l) : !g(l) && perfilDe(l.cliente) !== 'adcom'); };
     return [
       ['Portales de clientes', port.filter(function (l) { return g(l) || perfilDe(l.cliente) === 'adcom'; })],
       ['Plataformas de anuncios', E.filter(function (l) { return l.tipo === 'Plataforma' && g(l); })],
       ['Drive, hojas y código', E.filter(function (l) { return (l.tipo === 'Herramienta' || l.tipo === 'Archivo' || l.tipo === 'Código') && g(l); })],
-      ['Personal y freelance', port.filter(function (l) { return !g(l) && perfilDe(l.cliente) !== 'adcom'; }).concat(E.filter(function (l) { return l.tipo === 'Personal'; }))]
+      ['Dashboards freelance', port.filter(dash).concat(E.filter(function (l) { return l.tipo === 'Personal' && dash(l); }))],
+      ['Personal y herramientas', port.filter(function (l) { return !g(l) && perfilDe(l.cliente) !== 'adcom' && !dash(l); }).concat(E.filter(function (l) { return l.tipo === 'Personal' && !dash(l); }))]
     ];
   }
 
