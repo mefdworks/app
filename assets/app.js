@@ -794,7 +794,7 @@
       (esApoyo(c) ? '' : '<div class="dsec"><h2 class="s">Por verificar</h2><div class="card" id="dv">' + esqueleto('texto') + '</div></div>' +
       '<div class="dsec"><h2 class="s">Bitácora</h2><button class="card btnbit" type="button" id="dbit">' + ic('book') + '<span><b>Leer la bitácora de ' + esc(c.nombre) + '</b><small>Se abre en una ventana</small></span>' + ic('arrow', 'chev') + '</button></div>') +
       (resto.length ? '<div class="dsec"><h2 class="s">Asociado · ' + resto.length + '</h2><div class="bals">' + resto.map(tile).join('') + '</div></div>' : '') +
-      '<div class="dsec"><button class="lnk" type="button" id="darch">Quitar a ' + esc(c.nombre) + ' del panel</button></div>' +
+      '<div class="dsec"><button class="pill" type="button" id="darch">Quitar a ' + esc(c.nombre) + ' del panel</button></div>' +
       '</div>';
     $('#drawer').classList.add('on'); $('#scrim').classList.add('on'); document.body.classList.add('noscroll', 'dopen');
     $('#dx').onclick = cerrar;
